@@ -2,6 +2,8 @@
 
 **Monitor gives transparency to software that tracks students.**
 
+![dashboard](https://user-images.githubusercontent.com/37093293/119205564-27a8d400-ba5e-11eb-9a1d-9b9ac6a5fd86.png)
+
 ## Features
 * **Multi-User Monitoring:** Track activity of up to 5 students at once
 * **Classroom Stats:** Access session history, classroom admins, and a list of students in a class
