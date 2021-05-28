@@ -16,12 +16,14 @@ import CardContent from '@material-ui/core/CardContent';
 import CardActions from '@material-ui/core/CardActions';
 import Button from '@material-ui/core/Button';
 import Tooltip from '@material-ui/core/Tooltip';
+import Drawer from '@material-ui/core/Drawer';
 import SessionHistory from './SessionHistory.jsx'
 
 function Dashboard() {
   const [liveChats, setLiveChats] = useState([]);
   const [classHistory, setClassHistory] = useState([]);
   const [classrooms, setClassrooms] = useState([]);
+  const [drawerIsOpen, setDrawerIsOpen] = useState(false);
 
   const updateClasses = async () => {
     const userInfo = await fetch('/setup/comprands').then(res => res.json());
@@ -80,6 +82,9 @@ function Dashboard() {
     <div>
       <AppBar style={{backgroundColor: '#1976D2'}}>
         <Toolbar>
+          <IconButton onClick={()=>{setDrawerIsOpen(true)}} style={{color: '#fff'}}>
+            <Icon>menu</Icon>
+          </IconButton>
           <Typography variant='h6' style={{position: 'absolute', left: '50%', transform: 'translate(-50%, 0)'}}>GoGuardian Monitor</Typography>
           <Link to='/settings' style={{position: 'absolute', right: '12px'}}>
             <IconButton style={{color: '#fff'}}>
@@ -105,6 +110,18 @@ function Dashboard() {
           <SessionHistory history={classHistory} />
         </Paper>
       </div>
+      <Drawer anchor='left' open={drawerIsOpen} onClose={e=>{if(!(e.type=='keydown'&&(e.key=='Tab'||e.key=='Shift')))setDrawerIsOpen(false)}}>
+        <List style={{width: '250px'}}>
+          <Link to='/search' key='listSearchItem' style={{color: 'unset', textDecoration: 'unset'}}>
+            <ListItem button>
+              <ListItemIcon>
+                <Icon>search</Icon>
+              </ListItemIcon>
+              <ListItemText primary='User Search' />
+            </ListItem>
+          </Link>
+        </List>
+      </Drawer>
     </div>
   );
 }

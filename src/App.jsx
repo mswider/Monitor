@@ -5,6 +5,7 @@ import Dashboard from './Dashboard.jsx';
 import LiveChat from './LiveChat.jsx';
 import Settings from './Settings.jsx';
 import Classroom from './Classroom.jsx';
+import UserSearch from './Search.jsx';
 
 function App() {
   const [state, setState] = useState('loading');
@@ -35,6 +36,11 @@ function App() {
           <Route path='/dashboard'>
             <SetupRedirect mode={mode}>
               <Dashboard />
+            </SetupRedirect>
+          </Route>
+          <Route path='/search'>
+            <SetupRedirect mode={mode}>
+              <UserSearch />
             </SetupRedirect>
           </Route>
           <Route path='/settings'>
