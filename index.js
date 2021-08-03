@@ -4,7 +4,10 @@ const Pusher = require('pusher-js');
 const notifier = require('node-notifier');
 const yargs = require('yargs/yargs');
 const { hideBin } = require('yargs/helpers');
+const uuid = require('uuid');
 const fs = require('fs');
+const os = require('os');
+const path = require('path');
 const express = require('express');
 const app = express();
 app.use(express.json());
@@ -46,6 +49,12 @@ let extensionVersion = '1.0.0.0';
 const pusherKey = '4e83de4fd19694be0821';
 const pusherGGVersion = 6;
 const pusherAuthEndpoint = 'https://sakura.goguardian.com/api/v1/auth/ext';
+let tempDir = null;  //Do not use this directly
+
+const getTempDir = () => {
+  if (tempDir == null) tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ggMonitor-'));
+  return tempDir;
+};
 
 const getExtVersion = async () => {
   const xml = await fetch('https://ext.goguardian.com/stable.xml').then(data => data.text());
@@ -267,20 +276,38 @@ const makePusherFromComprand = comprand => {
 
 //  ----------  Internal Work  ----------
 const updateMonitoring = () => {
-  liveClassroomInfo.map(comprandEntry => {
+  liveClassroomInfo.map(async (comprandEntry) => {
     if (comprandEntry.monitoring) {
-      fetch('https://inquisition.goguardian.com/v2/ext/livemode', {
-        headers: {
-          'Authorization': comprandEntry.id
+      try {
+        const res = await fetch('https://inquisition.goguardian.com/v2/ext/livemode', {
+          headers: {
+            'Authorization': comprandEntry.id
+          }
+        });
+
+        const responseAsText = await res.text();
+        try {
+          const data = JSON.parse(responseAsText);  //This can fail so we wrap this in a try-catch
+          if (loggingIsVerbose) formatLog(`CompRand ${comprandEntry.id} is in ${data.classroomSessions.length} class${data.classroomSessions.length!=1?'es':''}.`);
+          const oldSessions = comprandEntry.sessions.map(e => { return e.id; });
+          const newSessions = data.classroomSessions.map(e => { return e.id; });
+          newSessions.map((e, index) => { if (!oldSessions.includes(e)) joinClass(data.classroomSessions[index], comprandEntry.id); });
+          oldSessions.map((e, index) => { if (!newSessions.includes(e)) leaveClass(comprandEntry.sessions[index], comprandEntry.id); });
+          liveClassroomInfo[liveClassroomInfo.indexOf(comprandEntry)].sessions = data.classroomSessions;
+        } catch (error) {  //Response isn't valid JSON
+          formatLog('Failed to parse class info response: ' + error);
+          const responseLogPath = path.join(getTempDir(), uuid.v4() + '.log');
+          fs.writeFile(responseLogPath, responseAsText, (fileErr) => {
+            if (!fileErr) {
+              formatLog(`Unexpected response has been logged to ${responseLogPath} for debugging`);
+            } else {
+              formatLog('Error writing to log file: ' + fileErr);  //No need to throw here, this isn't important
+            }
+          });
         }
-      }).then(res => res.json()).then(data => {
-        if (loggingIsVerbose) formatLog(`CompRand ${comprandEntry.id} is in ${data.classroomSessions.length} class${data.classroomSessions.length!=1?'es':''}.`);
-        const oldSessions = comprandEntry.sessions.map(e => { return e.id; });
-        const newSessions = data.classroomSessions.map(e => { return e.id; });
-        newSessions.map((e, index) => { if (!oldSessions.includes(e)) joinClass(data.classroomSessions[index], comprandEntry.id); });
-        oldSessions.map((e, index) => { if (!newSessions.includes(e)) leaveClass(comprandEntry.sessions[index], comprandEntry.id); });
-        liveClassroomInfo[liveClassroomInfo.indexOf(comprandEntry)].sessions = data.classroomSessions;
-      }).catch(error => formatLog('Failed to get class info: ' + error));
+      } catch (error) {  //Fetch failure (network error)
+        formatLog('Failed to fetch class info: ' + error);
+      }
     }
   });
 };
