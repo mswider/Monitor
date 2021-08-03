@@ -6,6 +6,7 @@ import LiveChat from './LiveChat.jsx';
 import Settings from './Settings.jsx';
 import Classroom from './Classroom.jsx';
 import UserSearch from './Search.jsx';
+import StudentInfo from './StudentInfo.jsx';
 
 function App() {
   const [state, setState] = useState('loading');
@@ -41,6 +42,11 @@ function App() {
           <Route path='/search'>
             <SetupRedirect mode={mode}>
               <UserSearch />
+            </SetupRedirect>
+          </Route>
+          <Route path='/studentInfo/:studentAID'>
+            <SetupRedirect mode={mode}>
+              <StudentInfo />
             </SetupRedirect>
           </Route>
           <Route path='/settings'>

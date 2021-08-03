@@ -132,16 +132,30 @@ function Classrooms(props) {
     const date = new Date(startMs);
     return date.toLocaleTimeString();
   };
+  const colors = ['#0097a7','#43a047','#ff5722','#9c27b0','#039be5','#f44336','#2196f3','#009688','#673ab7','#e91e63','#3f51b5'];
+
+  const randomColor = () => {
+    return colors[Math.floor(Math.random() * colors.length)]
+  };
   return (
-    <div style={{padding: props.classrooms.length==0?'0px':'8px', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-evenly', alignItems: 'flex-start'}}>
+    <div style={{padding: props.classrooms.length==0?'0px':'8px', display: 'flex', flexWrap: 'wrap', justifyContent: !props.forStudentPage?'space-evenly':'flex-start', alignItems: 'flex-start'}}>
       {props.classrooms.length == 0 ? (
         <Typography variant='h6' style={{color: '#757575', margin: '1em 0', fontStyle: 'italic'}}>No Classrooms Recorded</Typography>
       ) : (
         props.classrooms.map((classroom) =>
-          <Card variant='outlined' style={{width: '250px', textAlign: 'left', marginBottom: '8px'}} key={classroom.id}>
-            <CardContent>
-              <Typography variant='h5'>{classroom.name}</Typography>
-              <Divider />
+          <Card variant='outlined' style={{width: '250px', textAlign: 'left', marginBottom: !props.forStudentPage?'8px':'16px', marginRight: !props.forStudentPage?'unset':'16px'}} key={classroom.id}>
+            {props.forStudentPage && (
+              <CardContent style={{paddingBottom: '10px', backgroundColor: props.color ? (props.color == 'RANDOM' ? randomColor() : props.color) : 'dodgerblue'}}>
+                <Typography variant='h5' style={{color: '#fff'}}>{classroom.name}</Typography>
+              </CardContent>
+            )}
+            <CardContent style={props.forStudentPage ? {paddingTop: '0px'} : {}}>
+              {!props.forStudentPage && (
+                <React.Fragment>
+                  <Typography variant='h5'>{classroom.name}</Typography>
+                  <Divider />
+                </React.Fragment>
+              )}
               <Typography style={{fontSize: '16px', marginTop: '5px'}}>Admins: <span style={{fontSize: '14px', color: 'rgba(0, 0, 0, 0.54)'}}>{classroom.admins}</span></Typography>
               <Typography style={{fontSize: '16px'}}>Students: <span style={{fontSize: '14px', color: 'rgba(0, 0, 0, 0.54)'}}>{classroom.students}</span></Typography>
               <Typography style={{fontSize: '16px'}}>Sessions: <span style={{fontSize: '14px', color: 'rgba(0, 0, 0, 0.54)'}}>{classroom.sessions}</span></Typography>
@@ -184,4 +198,5 @@ function LiveChat(props) {
   );
 }
 
+export { Classrooms };
 export default Dashboard;

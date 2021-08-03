@@ -19,6 +19,7 @@ module.exports = {
     /* ... */
   },
   optimize: { //Nothing in here runs in watch mode, use normal build to optimize
-    minify: true
+    minify: true,
+    bundle: true
   },
 };

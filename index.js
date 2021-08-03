@@ -225,6 +225,10 @@ app.get('/info/classrooms', (req, res) => {
 app.get('/info/classhistory', (req, res) => {
   res.send(classroomHistory);
 });
+app.get('/info/people/:accountAID', (req, res) => {
+  const person = people[req.params.accountAID];
+  person ? res.send(person) : res.sendStatus(404);
+});
 app.get('/info/people', (req, res) => {
   res.send(people);
 });

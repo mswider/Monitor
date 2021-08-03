@@ -51,8 +51,7 @@ function Classroom() {
       </AppBar>
       {classExists ? (
         <Container style={{marginTop: '64px', paddingTop: '24px'}}>
-          <Typography variant='h4' style={{marginBottom: '5px'}}>{classroomInfo.name}</Typography>
-          <Divider />
+          <Typography variant='h2' style={{marginBottom: '5px'}}>{classroomInfo.name}</Typography>
           <div style={{padding: '12px'}}>
             <Typography variant='h5' style={{marginBottom: '5px'}}>{`Admins (${Object.keys(classroomInfo.admins).length})`}</Typography>
             <Divider />
@@ -68,9 +67,11 @@ function Classroom() {
             <div style={{padding: '12px', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-evenly'}}>
               {classroomInfo.people.map(e =>
                 <Tooltip title={people[e].email} key={e}>
-                  <Paper variant='outlined' style={{display: 'inline-block', padding: '8px', margin: '4px'}}>
-                    <Typography variant='h5'>{people[e].name}</Typography>
-                  </Paper>
+                  <Link to={'/studentInfo/' + people[e].aid}>
+                    <Paper variant='outlined' style={{display: 'inline-block', padding: '8px', margin: '4px'}}>
+                      <Typography variant='h5'>{people[e].name}</Typography>
+                    </Paper>
+                  </Link>
                 </Tooltip>
               )}
             </div>

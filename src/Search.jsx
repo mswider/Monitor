@@ -54,6 +54,7 @@ function UserSearch() {
 function SearchResults(props) {
   const [studentArray, setStudentArray] = useState([]);
   const [studentsFound, setStudentsFound] = useState([]);
+  const [classrooms, setClassrooms] = useState([]);
 
   useEffect(() => {
     fetch('/info/people').then(res => res.json()).then(data => {
@@ -62,7 +63,15 @@ function SearchResults(props) {
       setStudentArray(students);
       setStudentsFound(students);
     });
+    fetch('/info/classrooms').then(res => res.json()).then(data => {
+      const classes = Object.keys(data).map(e => data[e]);
+      setClassrooms(classes);
+    });
   }, []);
+
+  const getClassNumForStudent = (aid) => {
+    return classrooms.filter(e => e.people.includes(aid)).length;
+  };
   useEffect(() => {
     if (props.text.length != 0) {
       try { // The regex broke everything when I put in a wildcard (*) so I'm adding this
@@ -81,9 +90,16 @@ function SearchResults(props) {
       {studentsFound.length != 0 ? (
         <List>
           {studentsFound.map(e =>
-            <ListItem key={e.aid}>
-              <ListItemText primary={e.name} secondary={e.email} />
-            </ListItem>
+            <Link to={'/studentInfo/' + e.aid} style={{textDecoration: 'none', color: 'unset'}} key={e.aid}>
+              <ListItem button>
+                <ListItemText primary={e.name} secondary={
+                  <React.Fragment>
+                    <Typography variant='body2'>{e.email}</Typography>
+                    <Typography variant='body2'>Classes: {getClassNumForStudent(e.aid)}</Typography>
+                  </React.Fragment>
+                } />
+              </ListItem>
+            </Link>
           )}
         </List>
       ) : (
