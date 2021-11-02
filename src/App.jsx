@@ -7,6 +7,7 @@ import Settings from './Settings.jsx';
 import Classroom from './Classroom.jsx';
 import UserSearch from './Search.jsx';
 import StudentInfo from './StudentInfo.jsx';
+import ChatViewer from './ChatViewer.jsx';
 
 function App() {
   const [state, setState] = useState('loading');
@@ -24,6 +25,11 @@ function App() {
       )}
       {state == 'ready' && (
         <Switch>
+          <Route path='/chat/:sessionId/:studentAID'>
+            <SetupRedirect mode={mode}>
+              <ChatViewer />
+            </SetupRedirect>
+          </Route>
           <Route path='/classrooms/:classroomId'>
             <SetupRedirect mode={mode}>
               <Classroom />

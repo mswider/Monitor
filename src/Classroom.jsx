@@ -12,19 +12,16 @@ import Tooltip from '@material-ui/core/Tooltip';
 
 function Classroom() {
   let { classroomId } = useParams();
-  const [classroomInfo, setClassroomInfo] = useState({});
-  const [classExists, setClassExists] = useState(false);
-  const [history, setHistory] = useState([]);
-  const [people, setPeople] = useState({});
+  const [state, setState] = useState({ ready: false });
+
   useEffect(async () => {
     const classInfo = await fetch('/info/classrooms').then(res => res.json());
     if (classInfo[classroomId]) {
-      setClassroomInfo(classInfo[classroomId]);
-      const peopleResponse = await fetch('/info/people').then(res => res.json());
-      setPeople(peopleResponse);
-      const classHistory = await fetch('/info/classhistory').then(res => res.json()).then(data => data.filter(e => e.classroomId == classroomId));
-      setHistory(classHistory);
-      setClassExists(true); //Done last so that we don't render with data missing
+      let _state = { classroomInfo: classInfo[classroomId], ready: true };
+      _state.people = await fetch('/info/people').then(res => res.json());
+      _state.history = await fetch('/info/classhistory').then(res => res.json()).then(data => data.filter(e => e.classroomId == classroomId));
+      _state.chatStatus = await fetch(`/api/chat/classroomStatus/${classroomId}`).then(res => res.json());
+      setState(_state);
     }
   }, []);
   const getDiff = (start, end) => {
@@ -32,6 +29,14 @@ function Classroom() {
     const time = Math.floor(seconds / 60) + ':' + ((seconds % 60) >= 10?(seconds % 60):'0' + (seconds % 60).toString());
     return time;
   };
+  const getChatStatusMsg = (statusCode) => {
+    const messages = [
+      "Chats for this class haven't been recorded yet",
+      "Chats for this class are missing some sessions",
+      "Chat messages are up to date in this class"
+    ];
+    return messages[statusCode];
+  }
   return (
     <React.Fragment>
       <AppBar style={{backgroundColor: '#1976D2'}}>
@@ -49,36 +54,43 @@ function Classroom() {
           </Link>
         </Toolbar>
       </AppBar>
-      {classExists ? (
+      {state.ready ? (
         <Container style={{marginTop: '64px', paddingTop: '24px'}}>
-          <Typography variant='h2' style={{marginBottom: '5px'}}>{classroomInfo.name}</Typography>
+          <Typography variant='h2' style={{marginBottom: '5px'}}>{state.classroomInfo.name}</Typography>
           <div style={{padding: '12px'}}>
-            <Typography variant='h5' style={{marginBottom: '5px'}}>{`Admins (${Object.keys(classroomInfo.admins).length})`}</Typography>
+            <Typography variant='h5' style={{marginBottom: '5px'}}>{`Admins (${Object.keys(state.classroomInfo.admins).length})`}</Typography>
             <Divider />
             <div style={{padding: '12px', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-evenly'}}>
-              {Object.keys(classroomInfo.admins).map(e =>
+              {Object.keys(state.classroomInfo.admins).map(e =>
                 <Paper variant='outlined' key={e} style={{display: 'inline-block', padding: '8px', margin: '4px'}}>
-                  <Typography variant='h5'>{classroomInfo.admins[e].name}</Typography>
+                  <Typography variant='h5'>{state.classroomInfo.admins[e].name}</Typography>
                 </Paper>
               )}
             </div>
-            <Typography variant='h5' style={{marginBottom: '5px'}}>{`Students (${classroomInfo.people.length})`}</Typography>
+            <Typography variant='h5' style={{marginBottom: '5px'}}>{`Students (${state.classroomInfo.people.length})`}</Typography>
             <Divider />
             <div style={{padding: '12px', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-evenly'}}>
-              {classroomInfo.people.map(e =>
-                <Tooltip title={people[e].email} key={e}>
-                  <Link to={'/studentInfo/' + people[e].aid}>
-                    <Paper variant='outlined' style={{display: 'inline-block', padding: '8px', margin: '4px'}}>
-                      <Typography variant='h5'>{people[e].name}</Typography>
-                    </Paper>
+              {state.classroomInfo.people.map(e =>
+                <Paper key={e} variant='outlined' style={{display: 'flex', padding: '8px', margin: '4px'}}>
+                  <Link to={'/studentInfo/' + e} style={{color: 'unset', textDecoration: 'none'}}>
+                    <Tooltip title={state.people[e].email}>
+                      <Typography variant='h5' style={{marginRight: '5px'}}>{state.people[e].name}</Typography>
+                    </Tooltip>
                   </Link>
-                </Tooltip>
+                  <Tooltip title={getChatStatusMsg(state.chatStatus[e])} placement='right'>
+                    <IconButton size='small'>
+                      {state.chatStatus[e] == 0 && <Icon style={{color: '#b00020'}}>warning</Icon>}
+                      {state.chatStatus[e] == 1 && <Icon style={{color: '#ffab00'}}>error_outline</Icon>}
+                      {state.chatStatus[e] == 2 && <Icon style={{color: '#388e3c'}}>check_circle_outline</Icon>}
+                    </IconButton>
+                  </Tooltip>
+                </Paper>
               )}
             </div>
-            <Typography variant='h5' style={{marginBottom: '5px'}}>{`Sessions (${history.length})`}</Typography>
+            <Typography variant='h5' style={{marginBottom: '5px'}}>{`Sessions (${state.history.length})`}</Typography>
             <Divider />
             <div style={{padding: '12px', display: 'flex', flexWrap: 'wrap'}}>
-              {history.map(e =>
+              {state.history.map(e =>
                 <Paper variant='outlined' key={e.id} style={{display: 'inline-block', padding: '8px', margin: '4px'}}>
                   <Typography variant='h6'>Date: <span style={{fontWeight: '400'}}>{new Date(e.startMs).toLocaleDateString()}</span></Typography>
                   <Typography variant='h6'>Start: <span style={{fontWeight: '400'}}>{new Date(e.startMs).toLocaleTimeString()}</span></Typography>

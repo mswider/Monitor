@@ -3,6 +3,7 @@ import Typography from '@material-ui/core/Typography';
 import Divider from '@material-ui/core/Divider';
 import Avatar from '@material-ui/core/Avatar';
 import Tooltip from '@material-ui/core/Tooltip';
+import Icon from '@material-ui/core/Icon';
 
 function Chat(props) {
   const [members, setMembers] = useState({});
@@ -21,7 +22,7 @@ function Chat(props) {
     setMembers(final);
   }, props.members);
   useEffect(() => {
-    if (bubbleRef.current) bubbleRef.current.scrollIntoView();
+    if (bubbleRef.current && !props.noAutoScroll) bubbleRef.current.scrollIntoView();
   });
 
   const colors = ['#0097a7','#43a047','#ff5722','#9c27b0','#039be5','#f44336','#2196f3','#009688','#673ab7','#e91e63','#3f51b5'];
@@ -46,12 +47,15 @@ function Chat(props) {
       <div style={{flexGrow: 1, overflowY: 'auto', padding: '12px'}}>
         <React.Fragment>
           {props.messages.length == 0 && (
-            <Typography variant='h4' style={{color: '#757575', margin: '1em 0', fontStyle: 'italic', textAlign: 'center'}}>No Messages Yet</Typography>
+            <Typography variant='h4' style={{color: '#757575', margin: '1em 0', fontStyle: 'italic', textAlign: 'center'}}>No Messages Sent</Typography>
           )}
           {props.messages.length != 0 && (
             <div style={{display: 'flex', flexDirection: 'column'}}>
               {props.messages.map((message, index) =>
-                <div key={message.payload.messageId} style={{alignSelf: message.sender.type=='admin'?'flex-start':'flex-end', display: message.sender.type=='admin'?'flex':'block', marginBottom: '6px', marginTop: '6px'}} ref={index+1==props.messages.length?bubbleRef:undefined}>
+                <div key={message.payload.messageId} 
+                  style={{alignSelf: message.sender.type == 'admin' ? 'flex-start' : 'flex-end', display: message.sender.type == 'admin' ? 'flex' : 'block', marginBottom: '6px', marginTop: '6px'}} 
+                  ref={index + 1 == props.messages.length ? bubbleRef : undefined}
+                >
                   {message.sender.type=='admin' && (
                     <React.Fragment>
                       {members[message.sender.id] ? (
@@ -66,7 +70,16 @@ function Chat(props) {
                     </React.Fragment>
                   )}
                   <div style={message.sender.type=='admin'?{display: 'flex', flexDirection: 'column'}:{}}>
-                    <div style={{padding: '8px', borderRadius: '16px', backgroundColor: message.sender.type=='admin'?'#E0E0E0':'#64B5F6', borderBottomLeftRadius: message.sender.type=='admin'?'4px':'16px', borderBottomRightRadius: message.sender.type=='admin'?'16px':'4px'}}>
+                    <div style={{
+                        padding: '8px', 
+                        borderRadius: '16px', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        backgroundColor: message.sender.type == 'admin' ? ( message.payload.type == 'announcement' ? '#FFECB3' : '#E0E0E0' ) : '#64B5F6', 
+                        borderBottomLeftRadius: message.sender.type == 'admin' ? '4px' : '16px', 
+                        borderBottomRightRadius: message.sender.type == 'admin' ? '16px' : '4px'
+                      }}>
+                      {message.payload.type == 'announcement' && <Icon style={{marginRight: '8px'}}>announcement</Icon>}
                       <Typography variant='h6'>{message.payload.content}</Typography>
                     </div>
                     <p style={{fontFamily: 'Roboto', margin: '5px 0', fontSize: '0.9em', float: message.sender.type=='admin'?'left':'right'}}>{formattedDate(message.timestamp)}</p>

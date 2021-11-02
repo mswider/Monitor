@@ -64,8 +64,9 @@ function Settings() { // TODO: Redo the CompRand input, it is too long and repet
     const classrooms = await fetch('/info/classrooms').then(res => res.json());
     const people = await fetch('/info/people').then(res => res.json());
     const classHistory = await fetch('/info/classHistory').then(res => res.json());
+    const chatData = await fetch('/api/chat/messages').then(res => res.json());
 
-    const jsonBlob = new Blob([JSON.stringify({classrooms, people, classHistory})], {
+    const jsonBlob = new Blob([JSON.stringify({classrooms, people, classHistory, chatData})], {
       type: 'application/json'
     });
     const objURL = URL.createObjectURL(jsonBlob);

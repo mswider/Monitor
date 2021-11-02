@@ -45,6 +45,7 @@ let pusherClients = {};
 let people = {};
 let classrooms = {};
 let classroomHistory = [];
+let studentChats = {};
 let extensionVersion = '1.0.0.0';
 const pusherKey = '4e83de4fd19694be0821';
 const pusherGGVersion = 6;
@@ -77,6 +78,7 @@ if (argv.backup) {
         classrooms = backupObj.classrooms;
         people = backupObj.people;
         classroomHistory = backupObj.classHistory;
+        if (backupObj.chatData) studentChats = backupObj.chatData;
         formatLog('Restore from backup was successful');
       } else {
         formatLog('Restore failed, file is missing data');
@@ -101,6 +103,35 @@ setInterval(async () => {
     pusherClients[e].config.auth.params.version = version;
   });
 }, ((30) * 60 * 1000));
+
+const changeComprandEmail = async (comprand, email) => {
+  if (loggingIsVerbose) formatLog(comprand, email);
+  let urlencoded = new URLSearchParams();
+  urlencoded.append('email', email);
+  const options = {
+    method: 'POST',
+    headers: {
+      'authorization': comprand,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: urlencoded.toString()
+  };
+  await fetch('https://extapi.goguardian.com/api/v1/ext/nameandemail', options);
+
+  while (true) {
+    await new Promise((resolve) => setTimeout(resolve, 2500));
+    try {
+      const json = await fetch('https://snat.goguardian.com/api/v1/ext/user', {headers: {'Authorization': comprand}}).then(data => data.json());
+      if (json.emailOnFile == email) {
+        const comprandIndex = comprandArray.indexOf( comprandArray.filter(e => e.id == comprand)[0] );
+        comprandArray[comprandIndex].data = json;
+        return json;
+      }
+    } catch (error) {
+      if (loggingIsVerbose) formatLog('Email check failed: ' + error);
+    }
+  }
+};
 
 //  ----------  Initial Setup  ----------
 app.get('/needsConfig', (req, res) => {
@@ -189,26 +220,8 @@ app.post('/setup/monitoring', (req, res) => {
       if (workerInfo[workerIndex].data.email != req.body.data[comprand]) {  //Email changed
         formatLog(`Worker CompRand ${comprand} has been assigned to email ${req.body.data[comprand]}, requesting change...`);
         (async () => {
-          let urlencoded = new URLSearchParams();
-          urlencoded.append('email', req.body.data[comprand]);
-          const options = {
-            method: 'POST',
-            headers: {
-              'authorization': comprand,
-              'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: urlencoded.toString()
-          };
-          await fetch('https://extapi.goguardian.com/api/v1/ext/nameandemail', options);
-          let emailCheck = setInterval(async () => {  //GoGuardian can take a really long time to handle the change, so we use this interval to tell us when it happens
-            const json = await fetch('https://snat.goguardian.com/api/v1/ext/user', {headers: {'Authorization': comprand}}).then(data => data.json());
-            if (json.emailOnFile == req.body.data[comprand]) {
-              formatLog(`Worker CompRand ${comprand} has been changed to email ${req.body.data[comprand]} successfully`);
-              const comprandIndex = comprandArray.indexOf( comprandArray.filter(e => e.id == comprand)[0] );
-              comprandArray[comprandIndex].data = json;
-              clearInterval(emailCheck);
-            }
-          }, 2500);
+          await changeComprandEmail(comprand, req.body.data[comprand]);
+          formatLog(`Worker CompRand ${comprand} has been changed to email ${req.body.data[comprand]} successfully`);
         })();
       }
       workerInfo[workerIndex].data.email = req.body.data[comprand];
@@ -219,6 +232,114 @@ app.post('/setup/monitoring', (req, res) => {
       liveClassroomInfo[classIndex].sessions = [];
     }
   });
+});
+
+//  ----------  Chat Message Service  ----------
+const getChatStatusByAid = (aid, sessionsToCheck) => {  //returns [status, remaining]
+  if (studentChats[aid]) {
+    const recordedSessions = Object.keys(studentChats[aid]).filter(session => sessionsToCheck.some(e => session == e));
+    const sessionsToRecord = sessionsToCheck.filter(session => !recordedSessions.some(e => session == e));
+    if (sessionsToRecord.length != 0) {
+      if (recordedSessions.length == 0) {  //It is possible that we recorded the messages before the student joined this class
+        return [0, sessionsToCheck];
+      } else {
+        return [1, sessionsToRecord];
+      }
+    } else {
+      return [2, []];
+    }
+  } else {
+    return [0, sessionsToCheck];
+  }
+};
+const updateChatsByComprand = async (comprand, aid, sessions) => {
+  const retryDelay = 5000;
+  const iterationCap = 200;
+  let recordedSessions = [];
+  let iterations = 0;
+  while (recordedSessions.length != sessions.length) {
+    if (iterations >= iterationCap) throw new Error('Iteration cap exceeded');
+    if (iterations != 0) {
+      if (loggingIsVerbose) formatLog('Failed to grab some sessions, retrying after delay');
+      await new Promise((resolve) => setTimeout(resolve, retryDelay));
+    }
+    const sessionsToRecord = sessions.filter(session => !recordedSessions.some(e => session == e));
+    if (loggingIsVerbose) formatLog('Sessions to record: ' + sessionsToRecord + ' ; Already recorded: ' + recordedSessions);
+    const promises = sessionsToRecord.map(session => {
+      const options = {
+        headers: {
+          'Authorization': comprand
+        }
+      };
+      const requestData = fetch(`https://snat.goguardian.com/api/v1/ext/chat-messages?sessionId=${session}`, options).then(res => res.json());
+      return requestData.then(data => {
+        if (!studentChats[aid]) studentChats[aid] = {};
+        studentChats[aid][session] = data.messages;
+        if (loggingIsVerbose) formatLog(data.messages);
+        recordedSessions.push(session);
+      });
+    });
+    await Promise.allSettled(promises);
+    iterations++;
+  }
+};
+
+// Query params: comprand, aid
+app.get('/api/chat/updateStudent', async (req, res) => {
+  const comprandIsValid = req.query.comprand && comprandArray.map(e => e.id).includes(req.query.comprand);
+  const aidIsValid = people[req.query.aid] && people[req.query.aid].type == 'student';
+  if (comprandIsValid && aidIsValid) {
+    res.sendStatus(202);
+    const classesWithStudent = Object.keys(classrooms).filter(e => classrooms[e].people.includes(parseInt(req.query.aid)));
+    const sessionsWithStudent = classroomHistory.filter(e => classesWithStudent.includes(e.classroomId.toString())).map(e => e.id);
+    const sessionsToRecord = getChatStatusByAid(req.query.aid, sessionsWithStudent)[1];  //Only record sessions we don't have yet
+    formatLog(`Updating chats for ${people[req.query.aid].name}, ${sessionsToRecord.length} session${sessionsToRecord.length != 1 ? 's' : ''} will be recorded`);
+    try {
+      const userInfo = await fetch('https://snat.goguardian.com/api/v1/ext/user', { headers: { 'Authorization': req.query.comprand } }).then(data => data.json());
+      if (userInfo.accountId != req.query.aid) {
+        if (loggingIsVerbose) formatLog(`Need to update email for comprand to ${people[req.query.aid].email}`);
+        await changeComprandEmail(req.query.comprand, people[req.query.aid].email);
+        if (loggingIsVerbose) formatLog(`Email successfully updated to ${people[req.query.aid].email}`);
+      }
+      await updateChatsByComprand(req.query.comprand, parseInt(req.query.aid), sessionsToRecord);
+      formatLog(`Finished chat update for ${people[req.query.aid].name}`);
+    } catch (e) {
+      formatLog(`Failed to update chats for ${people[req.query.aid].name}, try again later`);
+      console.log(e);
+    }
+  } else {
+    res.status(400).send({comprandIsValid, aidIsValid});
+  }
+});
+app.get('/api/chat/messages/:accountAID', (req, res) => {
+  const chats = studentChats[req.params.accountAID];
+  const studentExists = people[req.params.accountAID] != undefined;
+  chats ? res.send(chats) : ( studentExists ? res.send({}) : res.sendStatus(400) );
+});
+app.get('/api/chat/messages', (req, res) => {
+  res.send(studentChats);
+});
+app.get('/api/chat/classroomStatus/:classId', (req, res) => {
+  if (classrooms[req.params.classId]) {
+    const sessionsForClass = classroomHistory.filter(e => e.classroomId == req.params.classId).map(e => e.id);
+    let studentStatus = {};
+    classrooms[req.params.classId].people.map(studentAID => {
+      studentStatus[studentAID] = getChatStatusByAid(studentAID, sessionsForClass)[0];
+    });
+    res.send(studentStatus);
+  } else {
+    res.sendStatus(400);
+  }
+});
+app.get('/api/chat/studentStatus/:studentAID', (req, res) => {
+  if (people[req.params.studentAID]) {
+    const classesWithStudent = Object.keys(classrooms).filter(e => classrooms[e].people.includes(parseInt(req.params.studentAID)));
+    const sessionsWithStudent = classroomHistory.filter(e => classesWithStudent.includes(e.classroomId.toString())).map(e => e.id);
+    const status = getChatStatusByAid(req.params.studentAID, sessionsWithStudent);
+    res.send({code: status[0], sessionsNeeded: status[1].length});
+  } else {
+    res.sendStatus(400);
+  }
 });
 
 //  ----------  Service Info  ----------
@@ -316,12 +437,13 @@ let monitoringInterval = setInterval(updateMonitoring, oldUpdateInterval);
 const joinClass = (classInfo, comprand) => {
   formatLog(`CompRand ${comprand} joined ${classInfo.classroomName}`);
   if (classroomHistory.filter(e => e.id == classInfo.id).length == 0) {  //Prevents duplicate history entries
+    const startTime = parseInt(classInfo.startTimeMS) || Date.now();  //Use the new start timestamp from Inquisition
     classroomHistory.unshift({  //Unshift adds to the front of an array
       name: classInfo.classroomName,
       id: classInfo.id,
       classroomId: classInfo.classroomId,
       date: new Date().toDateString(),
-      startMs: Date.now()
+      startMs: startTime
     });
     if (notificationsEnabled) {
       notifier.notify({
@@ -359,7 +481,8 @@ const joinClass = (classInfo, comprand) => {
     }
   });
   presenceChannel.bind('pusher:subscription_error', err => {
-    formatLog('Pusher subscription failure: ' + err);
+    formatLog('Pusher subscription failure:');
+    console.log(err);
   });
   presenceChannel.bind('pusher:subscription_succeeded', () => {
     if (loggingIsVerbose) formatLog('Pusher connection successful to ' + classInfo.classroomName);
