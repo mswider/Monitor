@@ -26,8 +26,8 @@ function Dashboard() {
   const [drawerIsOpen, setDrawerIsOpen] = useState(false);
 
   const updateClasses = async () => {
-    const userInfo = await fetch('/setup/comprands').then(res => res.json());
-    fetch('/info/classes').then(res => res.json()).then(async (data) => {
+    const userInfo = await fetch('./setup/comprands').then(res => res.json());
+    fetch('./info/classes').then(res => res.json()).then(async (data) => {
       let classesArray = [];
       for (var i in data) {
         if (data[i].sessions.length != 0) {
@@ -35,7 +35,7 @@ function Dashboard() {
           for (var x in userInfo) {
             if (userInfo[x].id == data[i].id) email = userInfo[x].data.emailOnFile;
           }
-          const userName = await fetch('/info/people').then(res => res.json()).then(people => {
+          const userName = await fetch('./info/people').then(res => res.json()).then(people => {
             const formattedPeople = Object.keys(people).map(e => { return {email: people[e].email, name: people[e].name}; });
             const filteredPerson = formattedPeople.filter(e => e.email == email)[0];
             return filteredPerson ? filteredPerson.name : email;  //Use email as name fallback
@@ -45,9 +45,9 @@ function Dashboard() {
       }
       setLiveChats(classesArray);
     });
-    const historyResponse = await fetch('/info/classHistory').then(res => res.json());
+    const historyResponse = await fetch('./info/classHistory').then(res => res.json());
     setClassHistory(historyResponse);
-    fetch('/info/classrooms').then(res => res.json()).then(data => {
+    fetch('./info/classrooms').then(res => res.json()).then(data => {
       let classroomEntries = [];
       Object.keys(data).map(classroom => {
         const classroomEntry = {

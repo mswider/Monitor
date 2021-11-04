@@ -13,7 +13,7 @@ function App() {
   const [state, setState] = useState('loading');
   const [mode, setMode] = useState('');
   useEffect(() => {
-    fetch('/needsConfig').then(res => res.json()).then(data => {
+    fetch('./needsConfig').then(res => res.json()).then(data => {
       setState('ready');
       data?setMode('setup'):setMode('default');
     });

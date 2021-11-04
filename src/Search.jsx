@@ -57,13 +57,13 @@ function SearchResults(props) {
   const [classrooms, setClassrooms] = useState([]);
 
   useEffect(() => {
-    fetch('/info/people').then(res => res.json()).then(data => {
+    fetch('./info/people').then(res => res.json()).then(data => {
       const peopleArray = Object.keys(data).map(e => data[e]);
       const students = peopleArray.filter(e => e.type == 'student');
       setStudentArray(students);
       setStudentsFound(students);
     });
-    fetch('/info/classrooms').then(res => res.json()).then(data => {
+    fetch('./info/classrooms').then(res => res.json()).then(data => {
       const classes = Object.keys(data).map(e => data[e]);
       setClassrooms(classes);
     });

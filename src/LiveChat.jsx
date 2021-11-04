@@ -24,13 +24,13 @@ function LiveChat() {
   const [chatKey, setChatKey] = useState(uuidv1()); //Fixes a bug where prop changes aren't reacted to
   const pusherRef = useRef();
   useEffect(async () => {
-    fetch('/info/people').then(res => res.json()).then(setMembers);
-    const comprandResponse = await fetch('/setup/comprands').then(res => res.json()).then(data => data.filter(e => e.data.emailOnFile == email)[0]);
+    fetch('./info/people').then(res => res.json()).then(setMembers);
+    const comprandResponse = await fetch('./setup/comprands').then(res => res.json()).then(data => data.filter(e => e.data.emailOnFile == email)[0]);
     if (comprandResponse != null) {
-      const liveSessions = await fetch('/info/classes').then(res => res.json()).then(data => data.filter(e => e.id == comprandResponse.id)[0]).then(person => person.sessions);
+      const liveSessions = await fetch('./info/classes').then(res => res.json()).then(data => data.filter(e => e.id == comprandResponse.id)[0]).then(person => person.sessions);
       if (liveSessions.length != 0) {
         setStatus('ok');
-        const settings = await fetch('/info/pusher').then(res => res.json());
+        const settings = await fetch('./info/pusher').then(res => res.json());
         pusherRef.current = new Pusher(settings.key, {cluster: 'goguardian', authEndpoint: '/pusher/authproxy', auth: {headers: {'Authorization': comprandResponse.id}, params: {version: settings.version, liveStateVersion: settings.ggVersion}}});
         const classIndex = 0;
         const channelNameTemp = `presence-student.${comprandResponse.data.accountId}-session.${liveSessions[classIndex].id}`;
@@ -48,7 +48,7 @@ function LiveChat() {
           setMessages(tempMessages);
           setChatKey(uuidv1());
         });
-        const chatHistory = await fetch(`/pusher/history/${liveSessions[0].id}`, {headers: {'Auth': comprandResponse.id}}).then(res => res.json()).then(data => data.messages);
+        const chatHistory = await fetch(`./pusher/history/${liveSessions[0].id}`, {headers: {'Auth': comprandResponse.id}}).then(res => res.json()).then(data => data.messages);
         setMessages(chatHistory);
       } else {
         setStatus('no_classes');

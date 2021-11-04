@@ -28,7 +28,7 @@ function StudentInfo() {
   useEffect(async () => {
     const accountAID = Number(studentAID);  //This is a string but we need it as a number
     if (!isNaN(accountAID)) {  //Needed to prevent errors if someone makes the param an actual string Ex: "hello_world"
-      const classes = await fetch('/info/classrooms').then(res => res.json());
+      const classes = await fetch('./info/classrooms').then(res => res.json());
       let classesWithStudent = {};
       Object.keys(classes).map(e => {
         if (classes[e].people.includes(accountAID)) {
@@ -38,7 +38,7 @@ function StudentInfo() {
 
       if (Object.keys(classesWithStudent).length != 0) {
         //Copied from Dashboard.jsx
-        const historyResponse = await fetch('/info/classHistory').then(res => res.json());
+        const historyResponse = await fetch('./info/classHistory').then(res => res.json());
         setClassHistory(historyResponse);
         let classroomEntries = [];
         Object.keys(classesWithStudent).map(classroom => {
@@ -51,9 +51,9 @@ function StudentInfo() {
           };
           classroomEntries.push(classroomEntry);
         });
-        await fetch(`/info/people/${accountAID}`).then(res => res.json()).then(data => setStudentInfo(data));
-        await fetch(`/api/chat/studentStatus/${accountAID}`).then(res => res.json()).then(data => setChatStatus(data));
-        await fetch(`/api/chat/messages/${accountAID}`).then(res => res.json()).then(data => {
+        await fetch(`./info/people/${accountAID}`).then(res => res.json()).then(data => setStudentInfo(data));
+        await fetch(`./api/chat/studentStatus/${accountAID}`).then(res => res.json()).then(data => setChatStatus(data));
+        await fetch(`./api/chat/messages/${accountAID}`).then(res => res.json()).then(data => {
           let _chats = {};  //Only store sessions where messages were sent
           Object.keys(data).filter(e => data[e].length != 0).map(sessionId => {
             _chats[sessionId] = data[sessionId];
@@ -128,8 +128,8 @@ function ChatStatus(props) {
 
   useEffect(async () => {
     if (props.status.code != 2) {
-      const workers = await fetch('/info/workers').then(res => res.json()).then(data => data.workers);
-      const comprandInfo = await fetch('/setup/comprands').then(res => res.json());
+      const workers = await fetch('./info/workers').then(res => res.json()).then(data => data.workers);
+      const comprandInfo = await fetch('./setup/comprands').then(res => res.json());
       const aidMap = comprandInfo.filter(e => e.data.accountId == props.aid);
       const comprandIsKnown = aidMap.length != 0;
       if (comprandIsKnown) {
@@ -154,7 +154,7 @@ function ChatStatus(props) {
     return comprandInfo.filter(e => e.id == comprand)[0].data;
   };
   const doChatUpdate = comprand => {
-    fetch(`/api/chat/updateStudent/?comprand=${comprand}&aid=${props.aid}`);
+    fetch(`./api/chat/updateStudent/?comprand=${comprand}&aid=${props.aid}`);
     setWorkersAvailable({...workersAvailable, state: false});
     setStatusMsg({tooltip: 'Update is in progress', btn: 'Updating...'});
   }

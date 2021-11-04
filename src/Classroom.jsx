@@ -15,12 +15,12 @@ function Classroom() {
   const [state, setState] = useState({ ready: false });
 
   useEffect(async () => {
-    const classInfo = await fetch('/info/classrooms').then(res => res.json());
+    const classInfo = await fetch('./info/classrooms').then(res => res.json());
     if (classInfo[classroomId]) {
       let _state = { classroomInfo: classInfo[classroomId], ready: true };
-      _state.people = await fetch('/info/people').then(res => res.json());
-      _state.history = await fetch('/info/classhistory').then(res => res.json()).then(data => data.filter(e => e.classroomId == classroomId));
-      _state.chatStatus = await fetch(`/api/chat/classroomStatus/${classroomId}`).then(res => res.json());
+      _state.people = await fetch('./info/people').then(res => res.json());
+      _state.history = await fetch('./info/classhistory').then(res => res.json()).then(data => data.filter(e => e.classroomId == classroomId));
+      _state.chatStatus = await fetch(`./api/chat/classroomStatus/${classroomId}`).then(res => res.json());
       setState(_state);
     }
   }, []);

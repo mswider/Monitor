@@ -28,18 +28,18 @@ function Settings() { // TODO: Redo the CompRand input, it is too long and repet
   const [monitoring, setMonitoring] = useState({});
 
   useEffect(() => {
-    fetch('/needsConfig').then(res => res.json()).then(setNeedsConfig);
+    fetch('./needsConfig').then(res => res.json()).then(setNeedsConfig);
     refreshData();
   }, []);
   const refreshData = () => {
-    fetch('/setup/comprands').then(res => res.json()).then(data => {
+    fetch('./setup/comprands').then(res => res.json()).then(data => {
       setComprand1(data[0] || {id: '', mode: 'monitor'});
       setComprand2(data[1] || {id: '', mode: 'monitor'});
       setComprand3(data[2] || {id: '', mode: 'monitor'});
       setComprand4(data[3] || {id: '', mode: 'monitor'});
       setComprand5(data[4] || {id: '', mode: 'monitor'});
     });
-    fetch('/info/workers').then(res => res.json()).then(data => {
+    fetch('./info/workers').then(res => res.json()).then(data => {
       setMonitoringInterval(data.interval);
       if (data.workers.length == 0) {
         setWorkerInfo({workersAvailable: false, data: []});
@@ -61,10 +61,10 @@ function Settings() { // TODO: Redo the CompRand input, it is too long and repet
   };
 
   const makeSaveFile = async () => {
-    const classrooms = await fetch('/info/classrooms').then(res => res.json());
-    const people = await fetch('/info/people').then(res => res.json());
-    const classHistory = await fetch('/info/classHistory').then(res => res.json());
-    const chatData = await fetch('/api/chat/messages').then(res => res.json());
+    const classrooms = await fetch('./info/classrooms').then(res => res.json());
+    const people = await fetch('./info/people').then(res => res.json());
+    const classHistory = await fetch('./info/classHistory').then(res => res.json());
+    const chatData = await fetch('./api/chat/messages').then(res => res.json());
 
     const jsonBlob = new Blob([JSON.stringify({classrooms, people, classHistory, chatData})], {
       type: 'application/json'
@@ -148,7 +148,7 @@ function Settings() { // TODO: Redo the CompRand input, it is too long and repet
           </FormControl>
         </div>
         <Button variant='contained' color='primary' style={{display: 'block', margin: 'auto'}} onClick={() => {
-          fetch('/setup/comprands',{method:'POST',headers: {'Content-Type':'application/json'},body:JSON.stringify([comprand1,comprand2,comprand3,comprand4,comprand5])}).then(res=>res.json()).then(data=>{
+          fetch('./setup/comprands',{method:'POST',headers: {'Content-Type':'application/json'},body:JSON.stringify([comprand1,comprand2,comprand3,comprand4,comprand5])}).then(res=>res.json()).then(data=>{
             setValid(data.comprands);
             if(data.valid){
               if(needsConfig){
@@ -177,7 +177,7 @@ function Settings() { // TODO: Redo the CompRand input, it is too long and repet
         </div>
         <Button variant='contained' color='primary' style={{display: 'block', margin: 'auto'}} onClick={() => {
           const monitoringData = {interval: monitoringInterval, data: monitoring};
-          fetch('/setup/monitoring',{method:'POST',headers: {'Content-Type':'application/json'},body:JSON.stringify(monitoringData)}).then(refreshData());
+          fetch('./setup/monitoring',{method:'POST',headers: {'Content-Type':'application/json'},body:JSON.stringify(monitoringData)}).then(refreshData());
         }}>Update Monitoring</Button>
       </Container>
     </React.Fragment>
