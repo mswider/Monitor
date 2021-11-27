@@ -31,7 +31,7 @@ function LiveChat() {
       if (liveSessions.length != 0) {
         setStatus('ok');
         const settings = await fetch('./info/pusher').then(res => res.json());
-        pusherRef.current = new Pusher(settings.key, {cluster: 'goguardian', authEndpoint: '/pusher/authproxy', auth: {headers: {'Authorization': comprandResponse.id}, params: {version: settings.version, liveStateVersion: settings.ggVersion}}});
+        pusherRef.current = new Pusher(settings.key, {cluster: 'goguardian', authEndpoint: './pusher/authproxy', auth: {headers: {'Authorization': comprandResponse.id}, params: {version: settings.version, liveStateVersion: settings.ggVersion}}});
         const classIndex = 0;
         const channelNameTemp = `presence-student.${comprandResponse.data.accountId}-session.${liveSessions[classIndex].id}`;
         setPusherInfo({channel: channelNameTemp, studentId: comprandResponse.data.accountId, sessionId: liveSessions[classIndex].id, classroomId: liveSessions[classIndex].classroomId}); //Allows us to send messages outside of this hook
