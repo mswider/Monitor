@@ -20,6 +20,7 @@ module.exports = {
   },
   optimize: { //Nothing in here runs in watch mode, use normal build to optimize
     minify: true,
-    bundle: true
+    bundle: true,
+    target: 'es2019'
   },
 };
