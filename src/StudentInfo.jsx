@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Classrooms } from './Dashboard.jsx';
 import AppBar from '@material-ui/core/AppBar';
@@ -18,56 +18,66 @@ import ListItem from '@material-ui/core/ListItem';
 import ListItemText from '@material-ui/core/ListItemText';
 
 function StudentInfo() {
+  const isInit = useRef(true);
   let { studentAID } = useParams();
-  const [classHistory, setClassHistory] = useState([]);
-  const [classrooms, setClassrooms] = useState([]);
-  const [studentInfo, setStudentInfo] = useState({});
+  const allClasses = useRef();
+  const classHistory = useRef();
+  const studentClassrooms = useRef([]);
+  const updateInterval = useRef();
+  const [studentInfo, setStudentInfo] = useState();
   const [chatStatus, setChatStatus] = useState({});
   const [chats, setChats] = useState({});
 
+  const loadChatData = async aid => {
+    await fetch(`./api/chat/studentStatus/${aid}`).then(res => res.json()).then(data => setChatStatus(data));
+    await fetch(`./api/chat/messages/${aid}`).then(res => res.json()).then(data => {
+      //Only store sessions where messages were sent
+      setChats(Object.fromEntries(Object.keys(data).filter(e => data[e].length != 0).map(sessionId => ([ sessionId, data[sessionId] ]))));
+    });
+  };
+
+  const updateChatStatus = aid => {
+    updateInterval.current = setInterval(async () => {
+      await loadChatData(aid);
+      setChatStatus(chatStatus => { //wack
+        if (chatStatus.code == 2) clearInterval(updateInterval.current);
+        return chatStatus;
+      })
+    }, 5000);
+  };
+
+  const ClassroomViewer = useMemo(() => //Prevent classrooms from changing color while we're updating chats bc it looks weird
+    <Classrooms classrooms={studentClassrooms.current} history={classHistory.current} forStudentPage color='RANDOM' />, 
+    [studentClassrooms.current, classHistory.current]
+  );
+
   useEffect(async () => {
+    if (isInit.current) {
+      allClasses.current = await fetch('./info/classrooms').then(res => res.json());
+      classHistory.current = await fetch('./info/classHistory').then(res => res.json());
+      isInit.current = false;
+    }
+    setStudentInfo(null);
+    clearInterval(updateInterval.current);
+
     const accountAID = Number(studentAID);  //This is a string but we need it as a number
     if (!isNaN(accountAID)) {  //Needed to prevent errors if someone makes the param an actual string Ex: "hello_world"
-      const classes = await fetch('./info/classrooms').then(res => res.json());
-      let classesWithStudent = {};
-      Object.keys(classes).map(e => {
-        if (classes[e].people.includes(accountAID)) {
-          classesWithStudent[e] = classes[e];
-        }
-      });
+      const classesWithStudent = Object.fromEntries(Object.keys(allClasses.current).filter(e => allClasses.current[e].people.includes(accountAID)).map(e => ([ e, allClasses.current[e] ])));
 
       if (Object.keys(classesWithStudent).length != 0) {
-        //Copied from Dashboard.jsx
-        const historyResponse = await fetch('./info/classHistory').then(res => res.json());
-        setClassHistory(historyResponse);
-        let classroomEntries = [];
-        Object.keys(classesWithStudent).map(classroom => {
-          const classroomEntry = {
-            id: classroom,
-            name: classesWithStudent[classroom].name,
-            admins: Object.keys(classesWithStudent[classroom].admins).length,
-            students: classesWithStudent[classroom].people.length,
-            sessions: historyResponse.filter(e => e.classroomId == classroom).length
-          };
-          classroomEntries.push(classroomEntry);
-        });
+        studentClassrooms.current = Object.keys(classesWithStudent).map(classroom => ({
+          id: classroom,
+          name: classesWithStudent[classroom].name,
+          admins: Object.keys(classesWithStudent[classroom].admins).length,
+          students: classesWithStudent[classroom].people.length,
+          sessions: classHistory.current.filter(e => e.classroomId == classroom).length
+        }));
+        await loadChatData(accountAID);
         await fetch(`./info/people/${accountAID}`).then(res => res.json()).then(data => setStudentInfo(data));
-        await fetch(`./api/chat/studentStatus/${accountAID}`).then(res => res.json()).then(data => setChatStatus(data));
-        await fetch(`./api/chat/messages/${accountAID}`).then(res => res.json()).then(data => {
-          let _chats = {};  //Only store sessions where messages were sent
-          Object.keys(data).filter(e => data[e].length != 0).map(sessionId => {
-            _chats[sessionId] = data[sessionId];
-          });
-          setChats(_chats);
-        });
-        setClassrooms(classroomEntries);
       }
     }
   }, [studentAID]);
-
-  const getSessionById = id => {
-    return classHistory.filter(e => e.id == id)[0];
-  };
+  useEffect(() => () => clearInterval(updateInterval.current), []); //Clear chat update interval on unmount
   return (
     <React.Fragment>
       <AppBar style={{backgroundColor: '#1976D2'}}>
@@ -86,25 +96,25 @@ function StudentInfo() {
         </Toolbar>
       </AppBar>
       <Container style={{marginTop: '64px', paddingTop: '24px'}}>
-        {classrooms.length != 0 ? (
+        {studentInfo ? (
           <React.Fragment>
             <Typography variant='h1' style={{textAlign: 'center'}}>{studentInfo.name}</Typography>
             <Typography variant='h5' style={{textAlign: 'center', marginBottom: '20px', color: '#757575'}}>{studentInfo.email}</Typography>
-            <Typography variant='h4' style={{marginBottom: '5px'}}>Classes: <span style={{color: '#757575'}}>{classrooms.length}</span></Typography>
+            <Typography variant='h4' style={{marginBottom: '5px'}}>Classes: <span style={{color: '#757575'}}>{studentClassrooms.current.length}</span></Typography>
             <Divider />
-            <Classrooms classrooms={classrooms} history={classHistory} forStudentPage color='RANDOM' />
+            {ClassroomViewer}
             <div style={{display: 'flex', alignItems: 'flex-end'}}>
               <Typography variant='h4' style={{marginBottom: '5px'}}>Chats: <span style={{color: '#757575'}}>{Object.keys(chats).length}</span></Typography>
-              <ChatStatus status={chatStatus} aid={studentInfo.aid} />
+              <ChatStatus status={chatStatus} aid={studentInfo.aid} update={updateChatStatus} />
             </div>
             <Divider />
             <div style={{padding: '12px', display: 'flex', flexWrap: 'wrap'}}>
               {Object.keys(chats).reverse().map(e =>
                 <Link to={`/chat/${e}/${studentInfo.aid}`} key={e}>
                   <Paper variant='outlined' style={{display: 'inline-block', padding: '8px', paddingTop: '4px', margin: '4px'}}>
-                    <Typography variant='h6' style={{textAlign: 'center'}}>{getSessionById(e).name}</Typography>
+                    <Typography variant='h6' style={{textAlign: 'center'}}>{classHistory.current.find(j => j.id == e).name}</Typography>
                     <Divider style={{marginBottom: '5px'}} />
-                    <Typography variant='h6'>Date: <span style={{fontWeight: '400'}}>{getSessionById(e).date}</span></Typography>
+                    <Typography variant='h6'>Date: <span style={{fontWeight: '400'}}>{classHistory.current.find(j => j.id == e).date}</span></Typography>
                     <Typography variant='h6'>Messages: <span style={{fontWeight: '400'}}>{chats[e].length}</span></Typography>
                   </Paper>
                 </Link>
@@ -130,10 +140,9 @@ function ChatStatus(props) {
     if (props.status.code != 2) {
       const workers = await fetch('./info/workers').then(res => res.json()).then(data => data.workers);
       const comprandInfo = await fetch('./setup/comprands').then(res => res.json());
-      const aidMap = comprandInfo.filter(e => e.data.accountId == props.aid);
-      const comprandIsKnown = aidMap.length != 0;
-      if (comprandIsKnown) {
-        setWorkersAvailable({state: true, needsPermissionChange: false, knownComprand: aidMap[0].id});
+      const accountInfo = comprandInfo.find(e => e.data.accountId == props.aid);
+      if (accountInfo) {
+        setWorkersAvailable({state: true, needsPermissionChange: false, knownComprand: accountInfo.id});
       } else {
         const filtered = workers.filter(e => e.busy == false);
         setWorkersAvailable({state: filtered.length != 0, needsPermissionChange: true, workers: filtered, comprands: comprandInfo});
@@ -157,6 +166,7 @@ function ChatStatus(props) {
     fetch(`./api/chat/updateStudent/?comprand=${comprand}&aid=${props.aid}`);
     setWorkersAvailable({...workersAvailable, state: false});
     setStatusMsg({tooltip: 'Update is in progress', btn: 'Updating...'});
+    props.update(props.aid);
   }
 
   //  We put the disabled button within a div because disabled elements don't fire events, making the tooltip not show up
