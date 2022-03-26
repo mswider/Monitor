@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Switch, Route, Redirect } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import Loading from './Loading.jsx';
 import Dashboard from './Dashboard.jsx';
 import LiveChat from './LiveChat.jsx';
@@ -10,76 +10,43 @@ import StudentInfo from './StudentInfo.jsx';
 import ChatViewer from './ChatViewer.jsx';
 
 function App() {
-  const [state, setState] = useState('loading');
-  const [mode, setMode] = useState('');
+  const [configMode, setConfigMode] = useState();
+
+  const routes = [
+    ['/chat/:sessionId/:studentAID', <ChatViewer />],
+    ['/liveChat/:email', <LiveChat />],
+    ['/classrooms/:classroomId', <Classroom />],
+    ['/studentInfo/:studentAID', <StudentInfo />],
+    ['/search', <UserSearch />],
+    ['/dashboard', <Dashboard />],
+    ['/settings', <Settings />, true],
+    ['/*', <Navigate to='/dashboard' replace />]
+  ];
+
   useEffect(() => {
     fetch('./needsConfig').then(res => res.json()).then(data => {
-      setState('ready');
-      data?setMode('setup'):setMode('default');
+      data ? setConfigMode(true) : setConfigMode(false);
     });
   }, []);
+
+  if (configMode == undefined) return <Loading />;
   return (
-    <React.Fragment>
-      {state == 'loading' && (
-        <Loading />
+    <Routes>
+      {routes.map(([path, element, authDisabled]) => 
+        <Route path={path} element={authDisabled ? element : (
+          <SetupRedirect redirect={configMode}>
+              {element}
+            </SetupRedirect>
+          )} 
+        />
       )}
-      {state == 'ready' && (
-        <Switch>
-          <Route path='/chat/:sessionId/:studentAID'>
-            <SetupRedirect mode={mode}>
-              <ChatViewer />
-            </SetupRedirect>
-          </Route>
-          <Route path='/classrooms/:classroomId'>
-            <SetupRedirect mode={mode}>
-              <Classroom />
-            </SetupRedirect>
-          </Route>
-          <Route path='/liveChat/:email'>
-            <SetupRedirect mode={mode}>
-              <LiveChat />
-            </SetupRedirect>
-          </Route>
-          <Route path='/dashboard'>
-            <SetupRedirect mode={mode}>
-              <Dashboard />
-            </SetupRedirect>
-          </Route>
-          <Route path='/search'>
-            <SetupRedirect mode={mode}>
-              <UserSearch />
-            </SetupRedirect>
-          </Route>
-          <Route path='/studentInfo/:studentAID'>
-            <SetupRedirect mode={mode}>
-              <StudentInfo />
-            </SetupRedirect>
-          </Route>
-          <Route path='/settings'>
-            <Settings />
-          </Route>
-          <Route path='/'>
-            <SetupRedirect mode={mode}>
-              <Redirect to='/dashboard' />
-            </SetupRedirect>
-          </Route>
-        </Switch>
-      )}
-    </React.Fragment>
+    </Routes>
   );
 }
 
-function SetupRedirect(props) {
-  return (
-    <React.Fragment>
-      {props.mode == 'default' && (
-        props.children
-      )}
-      {props.mode == 'setup' && (
-        <Redirect to='/settings' />
-      )}
-    </React.Fragment>
-  );
+function SetupRedirect({redirect = false, children}) {
+  if (redirect) return <Navigate to='/settings' />;
+  return children;
 }
 
 export default App;
