@@ -16,6 +16,7 @@ import DialogTitle from '@material-ui/core/DialogTitle';
 import List from '@material-ui/core/List';
 import ListItem from '@material-ui/core/ListItem';
 import ListItemText from '@material-ui/core/ListItemText';
+import CircularProgress from '@material-ui/core/CircularProgress';
 
 function StudentInfo() {
   const isInit = useRef(true);
@@ -133,7 +134,7 @@ function ChatStatus(props) {
   const [message, setMessage] = useState({text: '', color: '#000'});
   const [workersAvailable, setWorkersAvailable] = useState({state: false, needsPermissionChange: false});
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [statusMsg, setStatusMsg] = useState({tooltip: 'No workers available to record chats', btn: 'Update'}); //tooltip shown when disabled
+  const [updating, setUpdating] = useState(false);
 
 
   useEffect(async () => {
@@ -165,7 +166,7 @@ function ChatStatus(props) {
   const doChatUpdate = comprand => {
     fetch(`./api/chat/updateStudent/?comprand=${comprand}&aid=${props.aid}`);
     setWorkersAvailable({...workersAvailable, state: false});
-    setStatusMsg({tooltip: 'Update is in progress', btn: 'Updating...'});
+    setUpdating(true);
     props.update(props.aid);
   }
 
@@ -201,9 +202,12 @@ function ChatStatus(props) {
               )}
             </React.Fragment>
           ) : (
-            <Tooltip title={statusMsg.tooltip} placement='top' arrow>
+            <Tooltip title={updating ? 'Update is in progress' : 'No workers available to record chats'} placement='top' arrow>
               <div>
-                <Button variant='outlined' disabled>{statusMsg.btn}</Button>
+                <Button variant='outlined' disabled>
+                  {updating ? 'Updating...' : 'Update'}
+                  {updating && <CircularProgress size={20} style={{margin: '5px', marginLeft: '10px'}} />}
+                </Button>
               </div>
             </Tooltip>
           )
