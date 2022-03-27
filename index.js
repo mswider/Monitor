@@ -116,7 +116,11 @@ const changeComprandEmail = async (comprand, email) => {
     },
     body: urlencoded.toString()
   };
-  await fetch('https://extapi.goguardian.com/api/v1/ext/nameandemail', options);
+  await fetch('https://extapi.goguardian.com/api/v1/ext/nameandemail', options).then(res => {
+    if (!res.ok) {
+      throw new Error(`Couldn't reassign CompRand, HTTP error: ${res.status}`);
+    }
+  });
 
   while (true) {
     await new Promise((resolve) => setTimeout(resolve, 2500));
@@ -211,18 +215,21 @@ app.post('/setup/monitoring', (req, res) => {
     monitoringInterval = setInterval(updateMonitoring, req.body.interval);
     oldUpdateInterval = req.body.interval;
   }
-  Object.keys(req.body.data).map(comprand => {
+  Object.keys(req.body.data).map(async comprand => {
     const workerIndex = workerInfo.indexOf( workerInfo.filter(e => e.id == comprand)[0] );
     const isBusy = (req.body.data[comprand] != '');
     const classIndex = liveClassroomInfo.indexOf( liveClassroomInfo.filter(e => e.id == comprand)[0] );
-    workerInfo[workerIndex].busy = isBusy;
     if (isBusy) {
       if (workerInfo[workerIndex].data.email != req.body.data[comprand]) {  //Email changed
+        let success = true;
         formatLog(`Worker CompRand ${comprand} has been assigned to email ${req.body.data[comprand]}, requesting change...`);
-        (async () => {
-          await changeComprandEmail(comprand, req.body.data[comprand]);
+        await changeComprandEmail(comprand, req.body.data[comprand]).then(() => {
           formatLog(`Worker CompRand ${comprand} has been changed to email ${req.body.data[comprand]} successfully`);
-        })();
+        }).catch(e => {
+          formatLog(`Assignment of worker Comprand ${comprand} failed: ${e}`);
+          success = false;
+        });
+        if (!success) return null;  //Assignment failed, don't save data
       }
       workerInfo[workerIndex].data.email = req.body.data[comprand];
       liveClassroomInfo[classIndex].monitoring = true;
@@ -231,6 +238,7 @@ app.post('/setup/monitoring', (req, res) => {
       liveClassroomInfo[classIndex].monitoring = false;
       liveClassroomInfo[classIndex].sessions = [];
     }
+    workerInfo[workerIndex].busy = isBusy;
   });
 });
 
@@ -304,8 +312,7 @@ app.get('/api/chat/updateStudent', async (req, res) => {
       await updateChatsByComprand(req.query.comprand, parseInt(req.query.aid), sessionsToRecord);
       formatLog(`Finished chat update for ${people[req.query.aid].name}`);
     } catch (e) {
-      formatLog(`Failed to update chats for ${people[req.query.aid].name}, try again later`);
-      console.log(e);
+      formatLog(`Failed to update chats for ${people[req.query.aid].name}, ${e}`);
     }
   } else {
     res.status(400).send({comprandIsValid, aidIsValid});
