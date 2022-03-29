@@ -14,6 +14,7 @@ import InputLabel from '@material-ui/core/InputLabel';
 import Select from '@material-ui/core/Select';
 import MenuItem from '@material-ui/core/MenuItem';
 import Tooltip from '@material-ui/core/Tooltip';
+import Paper from '@material-ui/core/Paper';
 
 function Settings() { // TODO: Redo the CompRand input, it is too long and repetitive
   const [comprand1, setComprand1] = useState({id: '', mode: 'monitor'});
@@ -51,11 +52,14 @@ function Settings() { // TODO: Redo the CompRand input, it is too long and repet
           if (!data.workers[i].busy || data.workers[i].data.email) {
             available = true;
             workerData.push(data.workers[i]);
-            monitoringData[data.workers[i].id] = data.workers[i].data.email || '';
+            monitoringData[data.workers[i].id] = {
+              email: data.workers[i].data.email || '',
+              name: data.workers[i].data.name || ''
+            };
           }
         }
-        setWorkerInfo({workersAvailable: available, data: workerData});
         if (available) setMonitoring(monitoringData);
+        setWorkerInfo({workersAvailable: available, data: workerData});
       }
     });
   };
@@ -163,15 +167,26 @@ function Settings() { // TODO: Redo the CompRand input, it is too long and repet
           <Typography variant='h4'>Monitoring</Typography>
           <Divider />
           <TextField type='number' variant='outlined' size='small' label='Update Interval (seconds)' style={{marginTop: '12px', marginBottom: '8px'}} value={monitoringInterval / 1000} onChange={e=>setMonitoringInterval(e.target.value * 1000)} />
-          <Typography variant='h5'>Email Configuration</Typography>
+          <Typography variant='h5'>Worker Configuration</Typography>
           <div style={{padding: '12px'}}>
-            <Divider />
             {!workerInfo.workersAvailable ? (
               <Typography variant='h6' style={{color: '#757575', margin: '1em 0', fontStyle: 'italic', textAlign: 'center'}}>No Worker CompRands</Typography>
             ) : (
-              workerInfo.data.map(worker =>
-                <TextField variant='outlined' size='small' label='Email' style={{marginTop: '8px', width: '100%'}} value={monitoring[worker.id]} onChange={e=>setMonitoring({...monitoring, [worker.id]: e.target.value})} />
-              )
+              workerInfo.data.map((worker, i) => monitoring[worker.id] && (
+                <Paper variant="outlined" style={{padding: '16px', marginBottom: i == workerInfo.data.length - 1 ? '0px' : '16px'}}>
+                  <Typography variant='h6'>{worker.id}</Typography>
+                  <TextField
+                    variant='outlined'
+                    size='small'
+                    label='Email'
+                    style={{marginTop: '8px', width: '100%'}}
+                    value={monitoring[worker.id].email}
+                    error={monitoring[worker.id].email.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(monitoring[worker.id].email)}
+                    onChange={e=>setMonitoring({...monitoring, [worker.id]: {...monitoring[worker.id], email: e.target.value}})}
+                  />
+                  <TextField variant='outlined' size='small' label='Name' style={{marginTop: '8px', width: '100%'}} value={monitoring[worker.id].name} onChange={e=>setMonitoring({...monitoring, [worker.id]: {...monitoring[worker.id], name: e.target.value}})} />
+                </Paper>
+              ))
             )}
           </div>
         </div>

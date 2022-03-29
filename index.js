@@ -64,7 +64,7 @@ const getExtVersion = async () => {
   return data;
 };
 const formatLog = text => {
-  console.log((new Date().toLocaleString() + ' - ') + text);
+  console.log(`${new Date().toLocaleString()} - ${text}`);
 };
 
 formatLog(`Notifications are ${notificationsEnabled?'enabled':'disabled'}`);
@@ -104,10 +104,13 @@ setInterval(async () => {
   });
 }, ((30) * 60 * 1000));
 
-const changeComprandEmail = async (comprand, email) => {
-  if (loggingIsVerbose) formatLog(comprand, email);
+const changeComprandAccount = async (comprand, email, name) => {
+  if (loggingIsVerbose) formatLog(`Permission change for ${comprand}, ${name} (${email})`);
   let urlencoded = new URLSearchParams();
   urlencoded.append('email', email);
+  urlencoded.append('name', name);
+  urlencoded.append('googleProfileId', 0);
+  urlencoded.append('url', 'chrome.identity');
   const options = {
     method: 'POST',
     headers: {
@@ -116,7 +119,8 @@ const changeComprandEmail = async (comprand, email) => {
     },
     body: urlencoded.toString()
   };
-  await fetch('https://extapi.goguardian.com/api/v1/ext/nameandemail', options).then(res => {
+  await fetch('https://extapi.goguardian.com/api/v1/ext/nameandemail', options).then(async res => {
+    if (loggingIsVerbose) console.log(await res.json(), res.status);
     if (!res.ok) {
       throw new Error(`Couldn't reassign CompRand, HTTP error: ${res.status}`);
     }
@@ -217,21 +221,23 @@ app.post('/setup/monitoring', (req, res) => {
   }
   Object.keys(req.body.data).map(async comprand => {
     const workerIndex = workerInfo.indexOf( workerInfo.filter(e => e.id == comprand)[0] );
-    const isBusy = (req.body.data[comprand] != '');
+    const emailValid = req.body.data[comprand].email != '' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(req.body.data[comprand].email); //The billion dollar company doesn't validate emails so we do it ourselves
+    const isBusy = emailValid && req.body.data[comprand].name != '';
     const classIndex = liveClassroomInfo.indexOf( liveClassroomInfo.filter(e => e.id == comprand)[0] );
     if (isBusy) {
-      if (workerInfo[workerIndex].data.email != req.body.data[comprand]) {  //Email changed
+      if (workerInfo[workerIndex].data.email != req.body.data[comprand].email || workerInfo[workerIndex].data.name != req.body.data[comprand].name) {  //Email changed
         let success = true;
-        formatLog(`Worker CompRand ${comprand} has been assigned to email ${req.body.data[comprand]}, requesting change...`);
-        await changeComprandEmail(comprand, req.body.data[comprand]).then(() => {
-          formatLog(`Worker CompRand ${comprand} has been changed to email ${req.body.data[comprand]} successfully`);
+        formatLog(`Worker CompRand ${comprand} has been assigned to email ${req.body.data[comprand].email}, requesting change...`);
+        await changeComprandAccount(comprand, req.body.data[comprand].email, req.body.data[comprand].name).then(() => {
+          formatLog(`Worker CompRand ${comprand} has been changed to email ${req.body.data[comprand].email} successfully`);
         }).catch(e => {
           formatLog(`Assignment of worker Comprand ${comprand} failed: ${e}`);
           success = false;
         });
         if (!success) return null;  //Assignment failed, don't save data
       }
-      workerInfo[workerIndex].data.email = req.body.data[comprand];
+      workerInfo[workerIndex].data.email = req.body.data[comprand].email;
+      workerInfo[workerIndex].data.name = req.body.data[comprand].name;
       liveClassroomInfo[classIndex].monitoring = true;
     } else {
       workerInfo[workerIndex].data = {};
@@ -283,7 +289,7 @@ const updateChatsByComprand = async (comprand, aid, sessions) => {
       return requestData.then(data => {
         if (!studentChats[aid]) studentChats[aid] = {};
         studentChats[aid][session] = data.messages;
-        if (loggingIsVerbose) formatLog(data.messages);
+        if (loggingIsVerbose) console.log(data.messages);
         recordedSessions.push(session);
       });
     });
@@ -306,7 +312,7 @@ app.get('/api/chat/updateStudent', async (req, res) => {
       const userInfo = await fetch('https://snat.goguardian.com/api/v1/ext/user', { headers: { 'Authorization': req.query.comprand } }).then(data => data.json());
       if (userInfo.accountId != req.query.aid) {
         if (loggingIsVerbose) formatLog(`Need to update email for comprand to ${people[req.query.aid].email}`);
-        await changeComprandEmail(req.query.comprand, people[req.query.aid].email);
+        await changeComprandAccount(req.query.comprand, people[req.query.aid].email, people[req.query.aid].name);
         if (loggingIsVerbose) formatLog(`Email successfully updated to ${people[req.query.aid].email}`);
       }
       await updateChatsByComprand(req.query.comprand, parseInt(req.query.aid), sessionsToRecord);
