@@ -64,7 +64,7 @@ Once the server is configured with valid CompRands, a back button will appear on
 * Backup files can be downloaded by clicking the save icon in the top-right corner of the screen
 * If a backup is created while a tracked student is in a class, future restores from that backup will show that the class is still in progress despite that not always being true.
 * GoGuardian Teacher has students with the extension join a "presence channel" that lets them know which students are online. Monitor connects to these channels automatically to get the same data as the teachers. Because of this, students being tracked by Monitor will appear online in every class they're in.
-* If Monitor tracks a student that is not using the extension, their teacher will see that they are online, but won't get any data from them. If this happens, their teacher will see "Waiting For Activity" on their tile in GoGuardian Teacher. **Source:** [Student's Screen Says "Waiting For Activity"](https://help.goguardian.com/hc/en-us/articles/360047896552-Student-s-Screen-Says-Waiting-For-Activity)
+* If Monitor tracks a student that is not using the extension, their teacher will see that they are online, but won't get any data from them. If this happens, their teacher will see "Waiting For Activity" on their tile in GoGuardian Teacher. **Source:** [Student's Screen Says "Waiting For Activity"](https://support.goguardian.com/s/article/Students-Screen-Says-Waiting-For-Activity-1630104942037)
 
 ## Advanced
 ### GoGuardian Account Creation
