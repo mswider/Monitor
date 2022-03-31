@@ -92,16 +92,21 @@ if (argv.backup) {
 }
 
 (async () => {
+  try {
   extensionVersion = await getExtVersion();
+  } catch (e) {
+    formatLog(`Failed to configure Pusher extension version, using default (will be incorrect), ${e}`);
+  }
   formatLog('Pusher configured with extension version ' + extensionVersion);
 })();
-setInterval(async () => {
-  const version = await getExtVersion();
+setInterval(() => {
+  getExtVersion().then(version => {
   if (version != extensionVersion) formatLog('Pusher reconfigured with new extension version, ' + version);
   extensionVersion = version;
   Object.keys(pusherClients).map(e => {
     pusherClients[e].config.auth.params.version = version;
   });
+  }).catch(e => formatLog(`Failed to update extension version: ${e}`));
 }, ((30) * 60 * 1000));
 
 const changeComprandAccount = async (comprand, email, name) => {
