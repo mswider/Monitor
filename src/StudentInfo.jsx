@@ -1,11 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Classrooms } from './Dashboard.jsx';
-import AppBar from '@material-ui/core/AppBar';
-import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
-import IconButton from '@material-ui/core/IconButton';
-import Icon from '@material-ui/core/Icon';
 import Container from '@material-ui/core/Container';
 import Divider from '@material-ui/core/Divider';
 import Paper from '@material-ui/core/Paper';
@@ -80,53 +76,36 @@ function StudentInfo() {
   }, [studentAID]);
   useEffect(() => () => clearInterval(updateInterval.current), []); //Clear chat update interval on unmount
   return (
-    <React.Fragment>
-      <AppBar style={{backgroundColor: '#1976D2'}}>
-        <Toolbar>
-          <Link to='/dashboard'>
-            <IconButton style={{color: '#fff'}}>
-              <Icon>arrow_back</Icon>
-            </IconButton>
-          </Link>
-          <Typography variant='h6' style={{position: 'absolute', left: '50%', transform: 'translate(-50%, 0)'}}>GoGuardian Monitor</Typography>
-          <Link to='/settings' style={{position: 'absolute', right: '12px'}}>
-            <IconButton style={{color: '#fff'}}>
-              <Icon>settings</Icon>
-            </IconButton>
-          </Link>
-        </Toolbar>
-      </AppBar>
-      <Container style={{marginTop: '64px', paddingTop: '24px'}}>
-        {studentInfo ? (
-          <React.Fragment>
-            <Typography variant='h1' style={{textAlign: 'center'}}>{studentInfo.name}</Typography>
-            <Typography variant='h5' style={{textAlign: 'center', marginBottom: '20px', color: '#757575'}}>{studentInfo.email}</Typography>
-            <Typography variant='h4' style={{marginBottom: '5px'}}>Classes: <span style={{color: '#757575'}}>{studentClassrooms.current.length}</span></Typography>
-            <Divider />
-            {ClassroomViewer}
-            <div style={{display: 'flex', alignItems: 'flex-end'}}>
-              <Typography variant='h4' style={{marginBottom: '5px'}}>Chats: <span style={{color: '#757575'}}>{Object.keys(chats).length}</span></Typography>
-              <ChatStatus status={chatStatus} aid={studentInfo.aid} update={updateChatStatus} />
-            </div>
-            <Divider />
-            <div style={{padding: '12px', display: 'flex', flexWrap: 'wrap'}}>
-              {Object.keys(chats).reverse().map(e =>
-                <Link to={`/chat/${e}/${studentInfo.aid}`} key={e}>
-                  <Paper variant='outlined' style={{display: 'inline-block', padding: '8px', paddingTop: '4px', margin: '4px'}}>
-                    <Typography variant='h6' style={{textAlign: 'center'}}>{classHistory.current.find(j => j.id == e).name}</Typography>
-                    <Divider style={{marginBottom: '5px'}} />
-                    <Typography variant='h6'>Date: <span style={{fontWeight: '400'}}>{classHistory.current.find(j => j.id == e).date}</span></Typography>
-                    <Typography variant='h6'>Messages: <span style={{fontWeight: '400'}}>{chats[e].length}</span></Typography>
-                  </Paper>
-                </Link>
-              )}
-            </div>
-          </React.Fragment>
-        ) : (
-          <Typography variant='h3' style={{position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: '#757575', fontStyle: 'italic'}}>Student Doesn't Exist</Typography>
-        )}
-      </Container>
-    </React.Fragment>
+    <Container style={{marginTop: '64px', paddingTop: '24px'}}>
+      {studentInfo ? (
+        <React.Fragment>
+          <Typography variant='h1' style={{textAlign: 'center'}}>{studentInfo.name}</Typography>
+          <Typography variant='h5' style={{textAlign: 'center', marginBottom: '20px', color: '#757575'}}>{studentInfo.email}</Typography>
+          <Typography variant='h4' style={{marginBottom: '5px'}}>Classes: <span style={{color: '#757575'}}>{studentClassrooms.current.length}</span></Typography>
+          <Divider />
+          {ClassroomViewer}
+          <div style={{display: 'flex', alignItems: 'flex-end'}}>
+            <Typography variant='h4' style={{marginBottom: '5px'}}>Chats: <span style={{color: '#757575'}}>{Object.keys(chats).length}</span></Typography>
+            <ChatStatus status={chatStatus} aid={studentInfo.aid} update={updateChatStatus} />
+          </div>
+          <Divider />
+          <div style={{padding: '12px', display: 'flex', flexWrap: 'wrap'}}>
+            {Object.keys(chats).reverse().map(e =>
+              <Link to={`/chat/${e}/${studentInfo.aid}`} key={e}>
+                <Paper variant='outlined' style={{display: 'inline-block', padding: '8px', paddingTop: '4px', margin: '4px'}}>
+                  <Typography variant='h6' style={{textAlign: 'center'}}>{classHistory.current.find(j => j.id == e).name}</Typography>
+                  <Divider style={{marginBottom: '5px'}} />
+                  <Typography variant='h6'>Date: <span style={{fontWeight: '400'}}>{classHistory.current.find(j => j.id == e).date}</span></Typography>
+                  <Typography variant='h6'>Messages: <span style={{fontWeight: '400'}}>{chats[e].length}</span></Typography>
+                </Paper>
+              </Link>
+            )}
+          </div>
+        </React.Fragment>
+      ) : (
+        <Typography variant='h3' style={{position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: '#757575', fontStyle: 'italic'}}>Student Doesn't Exist</Typography>
+      )}
+    </Container>
   );
 }
 

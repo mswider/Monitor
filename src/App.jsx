@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Loading from './Loading.jsx';
+import Header from './Header.jsx';
 import Dashboard from './Dashboard.jsx';
 import LiveChat from './LiveChat.jsx';
 import Settings from './Settings.jsx';
@@ -12,14 +13,15 @@ import ChatViewer from './ChatViewer.jsx';
 function App() {
   const [configMode, setConfigMode] = useState();
 
+  const defaultHeader = { header: { left: 'back', right: 'settings' } };
   const routes = [
-    ['/chat/:sessionId/:studentAID', <ChatViewer />],
-    ['/liveChat/:email', <LiveChat />],
-    ['/classrooms/:classroomId', <Classroom />],
-    ['/studentInfo/:studentAID', <StudentInfo />],
-    ['/search', <UserSearch />],
-    ['/dashboard', <Dashboard />],
-    ['/settings', <Settings />, true],
+    ['/chat/:sessionId/:studentAID', <ChatViewer />, defaultHeader],
+    ['/liveChat/:email', <LiveChat />, defaultHeader],
+    ['/classrooms/:classroomId', <Classroom />, defaultHeader],
+    ['/studentInfo/:studentAID', <StudentInfo />, defaultHeader],
+    ['/search', <UserSearch />, defaultHeader],
+    ['/dashboard', <Dashboard />, {header: {left: 'menu', right: 'settings'}}],
+    ['/settings', <Settings />, {noAuth: true, header: {left: configMode ? '' : 'back', right: 'save'}}],
     ['/*', <Navigate to='/dashboard' replace />]
   ];
 
@@ -32,12 +34,13 @@ function App() {
   if (configMode == undefined) return <Loading />;
   return (
     <Routes>
-      {routes.map(([path, element, authDisabled]) => 
-        <Route path={path} element={authDisabled ? element : (
-          <SetupRedirect redirect={configMode}>
+      {routes.map(([path, element, options = {}]) => 
+        <Route path={path} element={(
+            <SetupRedirect redirect={!options.noAuth && configMode}>
+              {options.header && <Header right={options.header.right} left={options.header.left} />}
               {element}
             </SetupRedirect>
-          )} 
+          )}
         />
       )}
     </Routes>

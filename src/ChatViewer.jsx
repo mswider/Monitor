@@ -1,10 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import AppBar from '@material-ui/core/AppBar';
-import Toolbar from '@material-ui/core/Toolbar';
+import { useParams } from 'react-router-dom';
 import Typography from '@material-ui/core/Typography';
-import IconButton from '@material-ui/core/IconButton';
-import Icon from '@material-ui/core/Icon';
 import Paper from '@material-ui/core/Paper';
 import Chat from './Chat.jsx';
 
@@ -29,36 +25,17 @@ function ChatViewer() {
     });
   }, []);
   return (
-    <React.Fragment>
-      <AppBar style={{backgroundColor: '#1976D2'}}>
-        <Toolbar>
-          <Link to='/dashboard'>
-            <IconButton style={{color: '#fff'}}>
-              <Icon>arrow_back</Icon>
-            </IconButton>
-          </Link>
-          <Typography variant='h6' style={{position: 'absolute', left: '50%', transform: 'translate(-50%, 0)'}}>GoGuardian Monitor</Typography>
-          <Link to='/settings' style={{position: 'absolute', right: '12px'}}>
-            <IconButton style={{color: '#fff'}}>
-              <Icon>settings</Icon>
-            </IconButton>
-          </Link>
-        </Toolbar>
-      </AppBar>
-      <Paper elevation={3} style={{height: '70%', width:'45%', position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', display: 'flex', flexDirection: 'column'}}>
-        <React.Fragment>
-          {status == 'loading' && (
-            <Typography variant='h3' style={{color: '#757575', margin: 'auto', fontStyle: 'italic'}}>Loading...</Typography>
-          )}
-          {status == 'no_user' && (
-            <Typography variant='h3' style={{color: '#757575', margin: 'auto', fontStyle: 'italic'}}>User Isn't Being Monitored</Typography>
-          )}
-          {status == 'ok' && (
-            <Chat name={`${members[studentAID].name} - ${classroom}`} messages={messages} members={members} noAutoScroll />
-          )}
-        </React.Fragment>
-      </Paper>
-    </React.Fragment>
+    <Paper elevation={3} style={{height: '70%', width:'45%', position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', display: 'flex', flexDirection: 'column'}}>
+      {status == 'loading' && (
+        <Typography variant='h3' style={{color: '#757575', margin: 'auto', fontStyle: 'italic'}}>Loading...</Typography>
+      )}
+      {status == 'no_user' && (
+        <Typography variant='h3' style={{color: '#757575', margin: 'auto', fontStyle: 'italic'}}>User Isn't Being Monitored</Typography>
+      )}
+      {status == 'ok' && (
+        <Chat name={`${members[studentAID].name} - ${classroom}`} messages={messages} members={members} noAutoScroll />
+      )}
+    </Paper>
   );
 }
 

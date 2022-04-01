@@ -1,11 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import Pusher from 'pusher-js';
 import { v1 as uuidv1 } from 'uuid';
-import AppBar from '@material-ui/core/AppBar';
-import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
-import IconButton from '@material-ui/core/IconButton';
 import Icon from '@material-ui/core/Icon';
 import Paper from '@material-ui/core/Paper';
 import Divider from '@material-ui/core/Divider';
@@ -89,46 +86,27 @@ function LiveChat() {
     }
   };
   return (
-    <React.Fragment>
-      <AppBar style={{backgroundColor: '#1976D2'}}>
-        <Toolbar>
-          <Link to='/dashboard'>
-            <IconButton style={{color: '#fff'}}>
-              <Icon>arrow_back</Icon>
-            </IconButton>
-          </Link>
-          <Typography variant='h6' style={{position: 'absolute', left: '50%', transform: 'translate(-50%, 0)'}}>GoGuardian Monitor</Typography>
-          <Link to='/settings' style={{position: 'absolute', right: '12px'}}>
-            <IconButton style={{color: '#fff'}}>
-              <Icon>settings</Icon>
-            </IconButton>
-          </Link>
-        </Toolbar>
-      </AppBar>
-      <Paper elevation={3} style={{height: '70%', width:'45%', position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', display: 'flex', flexDirection: 'column'}}>
+    <Paper elevation={3} style={{height: '70%', width:'45%', position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', display: 'flex', flexDirection: 'column'}}>
+      {status == 'loading' && (
+        <Typography variant='h3' style={{color: '#757575', margin: 'auto', fontStyle: 'italic'}}>Loading...</Typography>
+      )}
+      {status == 'no_user' && (
+        <Typography variant='h3' style={{color: '#757575', margin: 'auto', fontStyle: 'italic'}}>User Isn't Being Monitored</Typography>
+      )}
+      {status == 'no_classes' && (
+        <Typography variant='h3' style={{color: '#757575', margin: 'auto', fontStyle: 'italic'}}>User Isn't In a Class</Typography>
+      )}
+      {status == 'ok' && (
         <React.Fragment>
-          {status == 'loading' && (
-            <Typography variant='h3' style={{color: '#757575', margin: 'auto', fontStyle: 'italic'}}>Loading...</Typography>
-          )}
-          {status == 'no_user' && (
-            <Typography variant='h3' style={{color: '#757575', margin: 'auto', fontStyle: 'italic'}}>User Isn't Being Monitored</Typography>
-          )}
-          {status == 'no_classes' && (
-            <Typography variant='h3' style={{color: '#757575', margin: 'auto', fontStyle: 'italic'}}>User Isn't In a Class</Typography>
-          )}
-          {status == 'ok' && (
-            <React.Fragment>
-              <Chat name={username} messages={messages} members={members} key={chatKey} />
-              <Divider />
-              <div style={{padding: '12px', display: 'flex'}}>
-                <TextField variant='filled' label='Message' size='small' style={{flexGrow: 1, marginRight: '12px'}} value={text} onChange={e=>setText(e.target.value)} />
-                <Button color='primary' variant='contained' disableElevation endIcon={<Icon>send</Icon>} onClick={sendMessage}>SEND</Button>
-              </div>
-            </React.Fragment>
-          )}
+          <Chat name={username} messages={messages} members={members} key={chatKey} />
+          <Divider />
+          <div style={{padding: '12px', display: 'flex'}}>
+            <TextField variant='filled' label='Message' size='small' style={{flexGrow: 1, marginRight: '12px'}} value={text} onChange={e=>setText(e.target.value)} />
+            <Button color='primary' variant='contained' disableElevation endIcon={<Icon>send</Icon>} onClick={sendMessage}>SEND</Button>
+          </div>
         </React.Fragment>
-      </Paper>
-    </React.Fragment>
+      )}
+    </Paper>
   );
 }
 

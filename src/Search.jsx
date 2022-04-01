@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import AppBar from '@material-ui/core/AppBar';
-import Toolbar from '@material-ui/core/Toolbar';
+import { Link } from 'react-router-dom';
 import Typography from '@material-ui/core/Typography';
-import IconButton from '@material-ui/core/IconButton';
 import Icon from '@material-ui/core/Icon';
 import Container from '@material-ui/core/Container';
 import List from '@material-ui/core/List';
@@ -24,30 +21,13 @@ function UserSearch() {
     boxSizing: 'border-box'
   };
   return (
-    <React.Fragment>
-      <AppBar style={{backgroundColor: '#1976D2'}}>
-        <Toolbar>
-          <Link to='/dashboard'>
-            <IconButton style={{color: '#fff'}}>
-              <Icon>arrow_back</Icon>
-            </IconButton>
-          </Link>
-          <Typography variant='h6' style={{position: 'absolute', left: '50%', transform: 'translate(-50%, 0)'}}>GoGuardian Monitor</Typography>
-          <Link to='/settings' style={{position: 'absolute', right: '12px'}}>
-            <IconButton style={{color: '#fff'}}>
-              <Icon>settings</Icon>
-            </IconButton>
-          </Link>
-        </Toolbar>
-      </AppBar>
-      <Container maxWidth='md' style={{marginTop: '64px', paddingTop: '24px'}}>
-        <div style={{margin: '0 auto', width: '75%'}}>
-          <Icon style={{position: 'absolute', transform: 'translate(0, 12px)', color: '#484848'}}>search</Icon>
-          <input type='text' placeholder='Search' style={inputStyle} value={searchText} onChange={e => setSearchText(e.target.value)} />
-          <SearchResults text={searchText} />
-        </div>
-      </Container>
-    </React.Fragment>
+    <Container maxWidth='md' style={{marginTop: '64px', paddingTop: '24px'}}>
+      <div style={{margin: '0 auto', width: '75%'}}>
+        <Icon style={{position: 'absolute', transform: 'translate(0, 12px)', color: '#484848'}}>search</Icon>
+        <input type='text' placeholder='Search' style={inputStyle} value={searchText} onChange={e => setSearchText(e.target.value)} />
+        <SearchResults text={searchText} />
+      </div>
+    </Container>
   );
 }
 
@@ -85,28 +65,23 @@ function SearchResults(props) {
       setStudentsFound(studentArray);
     }
   }, [props.text]);
-  return (
-    <React.Fragment>
-      {studentsFound.length != 0 ? (
-        <List>
-          {studentsFound.map(e =>
-            <Link to={'/studentInfo/' + e.aid} style={{textDecoration: 'none', color: 'unset'}} key={e.aid}>
-              <ListItem button>
-                <ListItemText primary={e.name} secondary={
-                  <React.Fragment>
-                    <Typography variant='body2'>{e.email}</Typography>
-                    <Typography variant='body2'>Classes: {getClassNumForStudent(e.aid)}</Typography>
-                  </React.Fragment>
-                } />
-              </ListItem>
-            </Link>
-          )}
-        </List>
-      ) : (
-        <Typography variant='h4' style={{color: '#757575', margin: '1em 0', fontStyle: 'italic', textAlign: 'center'}}>No Users Found</Typography>
+  if (studentsFound.length != 0) return (
+    <List>
+      {studentsFound.map(e =>
+        <Link to={'/studentInfo/' + e.aid} style={{textDecoration: 'none', color: 'unset'}} key={e.aid}>
+          <ListItem button>
+            <ListItemText primary={e.name} secondary={
+              <React.Fragment>
+                <Typography variant='body2'>{e.email}</Typography>
+                <Typography variant='body2'>Classes: {getClassNumForStudent(e.aid)}</Typography>
+              </React.Fragment>
+            } />
+          </ListItem>
+        </Link>
       )}
-    </React.Fragment>
+    </List>
   );
+  return <Typography variant='h4' style={{color: '#757575', margin: '1em 0', fontStyle: 'italic', textAlign: 'center'}}>No Users Found</Typography>;
 }
 
 export default UserSearch;

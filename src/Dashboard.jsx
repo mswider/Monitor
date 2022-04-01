@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import AppBar from '@material-ui/core/AppBar';
-import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
-import IconButton from '@material-ui/core/IconButton';
 import Icon from '@material-ui/core/Icon';
 import Paper from '@material-ui/core/Paper';
 import Divider from '@material-ui/core/Divider';
@@ -16,14 +13,12 @@ import CardContent from '@material-ui/core/CardContent';
 import CardActions from '@material-ui/core/CardActions';
 import Button from '@material-ui/core/Button';
 import Tooltip from '@material-ui/core/Tooltip';
-import Drawer from '@material-ui/core/Drawer';
 import SessionHistory from './SessionHistory.jsx'
 
 function Dashboard() {
   const [liveChats, setLiveChats] = useState([]);
   const [classHistory, setClassHistory] = useState([]);
   const [classrooms, setClassrooms] = useState([]);
-  const [drawerIsOpen, setDrawerIsOpen] = useState(false);
 
   const updateClasses = async () => {
     const userInfo = await fetch('./setup/comprands').then(res => res.json());
@@ -79,49 +74,22 @@ function Dashboard() {
     overflowY: 'auto'
   };
   return (
-    <div>
-      <AppBar style={{backgroundColor: '#1976D2'}}>
-        <Toolbar>
-          <IconButton onClick={()=>{setDrawerIsOpen(true)}} style={{color: '#fff'}}>
-            <Icon>menu</Icon>
-          </IconButton>
-          <Typography variant='h6' style={{position: 'absolute', left: '50%', transform: 'translate(-50%, 0)'}}>GoGuardian Monitor</Typography>
-          <Link to='/settings' style={{position: 'absolute', right: '12px'}}>
-            <IconButton style={{color: '#fff'}}>
-              <Icon>settings</Icon>
-            </IconButton>
-          </Link>
-        </Toolbar>
-      </AppBar>
-      <div style={{marginTop: '64px', padding: '16px', display: 'flex', alignItems: 'flex-start'}}>
-        <Paper variant='outlined' style={{...widgetStyle, marginRight: '8px'}}>
-          <Typography variant='h4'>Live Chats</Typography>
-          <Divider />
-          <LiveChat chats={liveChats} />
-        </Paper>
-        <Paper variant='outlined' style={{...widgetStyle, margin: '0 8px'}}>
-          <Typography variant='h4'>Classes</Typography>
-          <Divider />
-          <Classrooms classrooms={classrooms} history={classHistory} />
-        </Paper>
-        <Paper variant='outlined' style={{...widgetStyle, marginLeft: '8px'}}>
-          <Typography variant='h4'>Class History</Typography>
-          <Divider />
-          <SessionHistory history={classHistory} />
-        </Paper>
-      </div>
-      <Drawer anchor='left' open={drawerIsOpen} onClose={e=>{if(!(e.type=='keydown'&&(e.key=='Tab'||e.key=='Shift')))setDrawerIsOpen(false)}}>
-        <List style={{width: '250px'}}>
-          <Link to='/search' key='listSearchItem' style={{color: 'unset', textDecoration: 'unset'}}>
-            <ListItem button>
-              <ListItemIcon>
-                <Icon>search</Icon>
-              </ListItemIcon>
-              <ListItemText primary='User Search' />
-            </ListItem>
-          </Link>
-        </List>
-      </Drawer>
+    <div style={{marginTop: '64px', padding: '16px', display: 'flex', alignItems: 'flex-start'}}>
+      <Paper variant='outlined' style={{...widgetStyle, marginRight: '8px'}}>
+        <Typography variant='h4'>Live Chats</Typography>
+        <Divider />
+        <LiveChat chats={liveChats} />
+      </Paper>
+      <Paper variant='outlined' style={{...widgetStyle, margin: '0 8px'}}>
+        <Typography variant='h4'>Classes</Typography>
+        <Divider />
+        <Classrooms classrooms={classrooms} history={classHistory} />
+      </Paper>
+      <Paper variant='outlined' style={{...widgetStyle, marginLeft: '8px'}}>
+        <Typography variant='h4'>Class History</Typography>
+        <Divider />
+        <SessionHistory history={classHistory} />
+      </Paper>
     </div>
   );
 }
