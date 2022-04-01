@@ -360,6 +360,18 @@ app.get('/api/chat/studentStatus/:studentAID', (req, res) => {
   }
 });
 
+app.get('/api/backup', (req, res) => {
+  res.set({
+    'Content-Disposition': 'attachment; filename=gg_backup.json'
+  });
+  res.send({
+    classrooms,
+    people,
+    classHistory: classroomHistory,
+    chatData: studentChats
+  });
+});
+
 //  ----------  Service Info  ----------
 app.get('/info/workers', (req, res) => {
   res.send({interval: oldUpdateInterval, workers: workerInfo});
