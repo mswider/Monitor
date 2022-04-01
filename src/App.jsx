@@ -36,10 +36,10 @@ function App() {
     <Routes>
       {routes.map(([path, element, options = {}]) => 
         <Route path={path} element={(
-            <SetupRedirect redirect={!options.noAuth && configMode}>
-              {options.header && <Header right={options.header.right} left={options.header.left} />}
-              {element}
-            </SetupRedirect>
+          <SetupRedirect redirect={!options.noAuth && configMode}>
+            {options.header && <Header right={options.header.right} left={options.header.left} />}
+            {element}
+          </SetupRedirect>
           )}
         />
       )}
