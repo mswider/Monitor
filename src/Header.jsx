@@ -72,7 +72,7 @@ function Header({ rightElement, right, leftElement, left }) {
       <Drawer anchor='left' open={drawerIsOpen} onClose={e=>{if(!(e.type=='keydown'&&(e.key=='Tab'||e.key=='Shift')))setDrawerIsOpen(false)}}>
         <List style={{width: '250px'}}>
           <Link to='/search' key='listSearchItem' style={{color: 'unset', textDecoration: 'unset'}}>
-            <ListItem button>
+            <ListItem button onClick={() => setDrawerIsOpen(false)}>
               <ListItemIcon>
                 <Icon>search</Icon>
               </ListItemIcon>
