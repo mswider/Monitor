@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import AppBar from '@material-ui/core/AppBar';
-import Toolbar from '@material-ui/core/Toolbar';
-import Tooltip from '@material-ui/core/Tooltip';
-import IconButton from '@material-ui/core/IconButton';
-import Icon from '@material-ui/core/Icon';
-import Typography from '@material-ui/core/Typography';
-import Drawer from '@material-ui/core/Drawer';
-import List from '@material-ui/core/List';
-import ListItem from '@material-ui/core/ListItem';
-import ListItemText from '@material-ui/core/ListItemText';
-import ListItemIcon from '@material-ui/core/ListItemIcon';
+import AppBar from '@mui/material/AppBar';
+import Toolbar from '@mui/material/Toolbar';
+import Tooltip from '@mui/material/Tooltip';
+import IconButton from '@mui/material/IconButton';
+import Icon from '@mui/material/Icon';
+import Typography from '@mui/material/Typography';
+import Drawer from '@mui/material/Drawer';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemText from '@mui/material/ListItemText';
+import ListItemIcon from '@mui/material/ListItemIcon';
 
 function Header({ rightElement, right, leftElement, left }) {
   const [drawerIsOpen, setDrawerIsOpen] = useState(false);
@@ -18,10 +18,10 @@ function Header({ rightElement, right, leftElement, left }) {
   const getComponent = type => {
     switch (type) {
       case 'save':
-        return  (
+        return (
           <Tooltip title='Generate Backup File'>
             <a href='./api/backup' target='_blank'>
-              <IconButton style={{color: '#fff'}}>
+              <IconButton style={{color: '#fff'}} size="large">
                 <Icon>save</Icon>
               </IconButton>
             </a>
@@ -30,21 +30,24 @@ function Header({ rightElement, right, leftElement, left }) {
       case 'settings':
         return (
           <Link to='/settings'>
-            <IconButton style={{color: '#fff'}}>
+            <IconButton style={{color: '#fff'}} size="large">
               <Icon>settings</Icon>
             </IconButton>
           </Link>
         );
       case 'menu':
         return (
-          <IconButton onClick={()=>{setDrawerIsOpen(true)}} style={{color: '#fff'}}>
+          <IconButton
+            onClick={()=>{setDrawerIsOpen(true)}}
+            style={{color: '#fff'}}
+            size="large">
             <Icon>menu</Icon>
           </IconButton>
         );
       case 'back':
         return (
           <Link to='/dashboard'>
-            <IconButton style={{color: '#fff'}}>
+            <IconButton style={{color: '#fff'}} size="large">
               <Icon>arrow_back</Icon>
             </IconButton>
           </Link>

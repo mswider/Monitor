@@ -2,12 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import Pusher from 'pusher-js';
 import { v1 as uuidv1 } from 'uuid';
-import Typography from '@material-ui/core/Typography';
-import Icon from '@material-ui/core/Icon';
-import Paper from '@material-ui/core/Paper';
-import Divider from '@material-ui/core/Divider';
-import TextField from '@material-ui/core/TextField';
-import Button from '@material-ui/core/Button';
+import Typography from '@mui/material/Typography';
+import Icon from '@mui/material/Icon';
+import Paper from '@mui/material/Paper';
+import Divider from '@mui/material/Divider';
+import TextField from '@mui/material/TextField';
+import Button from '@mui/material/Button';
 import Chat from './Chat.jsx';
 
 function LiveChat() {

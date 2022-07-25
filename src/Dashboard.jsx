@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import Typography from '@material-ui/core/Typography';
-import Icon from '@material-ui/core/Icon';
-import Paper from '@material-ui/core/Paper';
-import Divider from '@material-ui/core/Divider';
-import List from '@material-ui/core/List';
-import ListItem from '@material-ui/core/ListItem';
-import ListItemText from '@material-ui/core/ListItemText';
-import ListItemIcon from '@material-ui/core/ListItemIcon';
-import Card from '@material-ui/core/Card';
-import CardContent from '@material-ui/core/CardContent';
-import CardActions from '@material-ui/core/CardActions';
-import Button from '@material-ui/core/Button';
-import Tooltip from '@material-ui/core/Tooltip';
+import Typography from '@mui/material/Typography';
+import Icon from '@mui/material/Icon';
+import Paper from '@mui/material/Paper';
+import Divider from '@mui/material/Divider';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemText from '@mui/material/ListItemText';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import CardActions from '@mui/material/CardActions';
+import Button from '@mui/material/Button';
+import Tooltip from '@mui/material/Tooltip';
 import SessionHistory from './SessionHistory.jsx'
 
 function Dashboard() {

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import Typography from '@material-ui/core/Typography';
-import Icon from '@material-ui/core/Icon';
-import Container from '@material-ui/core/Container';
-import List from '@material-ui/core/List';
-import ListItem from '@material-ui/core/ListItem';
-import ListItemText from '@material-ui/core/ListItemText';
+import Typography from '@mui/material/Typography';
+import Icon from '@mui/material/Icon';
+import Container from '@mui/material/Container';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemText from '@mui/material/ListItemText';
 
 function UserSearch() {
   const [searchText, setSearchText] = useState('');

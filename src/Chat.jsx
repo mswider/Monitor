@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import Typography from '@material-ui/core/Typography';
-import Divider from '@material-ui/core/Divider';
-import Avatar from '@material-ui/core/Avatar';
-import Tooltip from '@material-ui/core/Tooltip';
-import Icon from '@material-ui/core/Icon';
+import Typography from '@mui/material/Typography';
+import Divider from '@mui/material/Divider';
+import Avatar from '@mui/material/Avatar';
+import Tooltip from '@mui/material/Tooltip';
+import Icon from '@mui/material/Icon';
 
 function Chat(props) {
   const [members, setMembers] = useState({});

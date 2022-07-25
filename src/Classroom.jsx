@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import Typography from '@material-ui/core/Typography';
-import IconButton from '@material-ui/core/IconButton';
-import Icon from '@material-ui/core/Icon';
-import Container from '@material-ui/core/Container';
-import Divider from '@material-ui/core/Divider';
-import Paper from '@material-ui/core/Paper';
-import Tooltip from '@material-ui/core/Tooltip';
+import Typography from '@mui/material/Typography';
+import IconButton from '@mui/material/IconButton';
+import Icon from '@mui/material/Icon';
+import Container from '@mui/material/Container';
+import Divider from '@mui/material/Divider';
+import Paper from '@mui/material/Paper';
+import Tooltip from '@mui/material/Tooltip';
 
 function Classroom() {
   let { classroomId } = useParams();
@@ -59,7 +59,7 @@ function Classroom() {
                   <Typography variant='h5' style={{marginRight: '5px'}}>{state.people[e].name}</Typography>
                 </Tooltip>
               </Link>
-              <Tooltip title={getChatStatusMsg(state.chatStatus[e])} placement='right'>
+              <Tooltip title={getChatStatusMsg(state.chatStatus[e])} placement='right' disableInteractive>
                 <IconButton size='small'>
                   {state.chatStatus[e] == 0 && <Icon style={{color: '#b00020'}}>warning</Icon>}
                   {state.chatStatus[e] == 1 && <Icon style={{color: '#ffab00'}}>error_outline</Icon>}

@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import Typography from '@material-ui/core/Typography';
-import Container from '@material-ui/core/Container';
-import Divider from '@material-ui/core/Divider';
-import TextField from '@material-ui/core/TextField';
-import Button from '@material-ui/core/Button';
-import FormControl from '@material-ui/core/FormControl';
-import InputLabel from '@material-ui/core/InputLabel';
-import Select from '@material-ui/core/Select';
-import MenuItem from '@material-ui/core/MenuItem';
-import Paper from '@material-ui/core/Paper';
+import Typography from '@mui/material/Typography';
+import Container from '@mui/material/Container';
+import Divider from '@mui/material/Divider';
+import TextField from '@mui/material/TextField';
+import Button from '@mui/material/Button';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import Paper from '@mui/material/Paper';
 
 function Settings() { // TODO: Redo the CompRand input, it is too long and repetitive
   const [comprand1, setComprand1] = useState({id: '', mode: 'monitor'});
