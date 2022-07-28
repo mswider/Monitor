@@ -6,25 +6,30 @@ import Container from '@mui/material/Container';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
+import TextField from '@mui/material/TextField';
+import InputAdornment from '@mui/material/InputAdornment';
 
 function UserSearch() {
   const [searchText, setSearchText] = useState('');
 
-  const inputStyle = {
-    width: '100%',
-    outline: 'none',
-    border: 'none',
-    borderBottom: '#545454 solid 2px',
-    fontFamily: 'Roboto',
-    fontSize: '24px',
-    padding: '10px 30px',
-    boxSizing: 'border-box'
-  };
   return (
     <Container maxWidth='md' style={{marginTop: '64px', paddingTop: '24px'}}>
       <div style={{margin: '0 auto', width: '75%'}}>
-        <Icon style={{position: 'absolute', transform: 'translate(0, 12px)', color: '#484848'}}>search</Icon>
-        <input type='text' placeholder='Search' style={inputStyle} value={searchText} onChange={e => setSearchText(e.target.value)} />
+        <TextField
+          placeholder="Search"
+          hiddenLabel
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <Icon>search</Icon>
+              </InputAdornment>
+            ),
+          }}
+          fullWidth
+          variant="filled"
+          value={searchText}
+          onChange={e => setSearchText(e.target.value)}
+        />
         <SearchResults text={searchText} />
       </div>
     </Container>

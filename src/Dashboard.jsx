@@ -13,6 +13,7 @@ import CardContent from '@mui/material/CardContent';
 import CardActions from '@mui/material/CardActions';
 import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
+import Box from '@mui/material/Box';
 import SessionHistory from './SessionHistory.jsx'
 
 function Dashboard() {
@@ -124,10 +125,10 @@ function Classrooms(props) {
                   <Divider />
                 </React.Fragment>
               )}
-              <Typography style={{fontSize: '16px', marginTop: '5px'}}>Admins: <span style={{fontSize: '14px', color: 'rgba(0, 0, 0, 0.54)'}}>{classroom.admins}</span></Typography>
-              <Typography style={{fontSize: '16px'}}>Students: <span style={{fontSize: '14px', color: 'rgba(0, 0, 0, 0.54)'}}>{classroom.students}</span></Typography>
-              <Typography style={{fontSize: '16px'}}>Sessions: <span style={{fontSize: '14px', color: 'rgba(0, 0, 0, 0.54)'}}>{classroom.sessions}</span></Typography>
-              <Typography style={{fontSize: '16px'}}>Last Start: <span style={{fontSize: '14px', color: 'rgba(0, 0, 0, 0.54)'}}>{getLastStart(classroom.id)}</span></Typography>
+              <Typography style={{fontSize: '16px', marginTop: '5px'}}>Admins: <Box component="span" sx={{fontSize: '14px', color: 'action.active'}}>{classroom.admins}</Box></Typography>
+              <Typography style={{fontSize: '16px'}}>Students: <Box component="span" sx={{fontSize: '14px', color: 'action.active'}}>{classroom.students}</Box></Typography>
+              <Typography style={{fontSize: '16px'}}>Sessions: <Box component="span" sx={{fontSize: '14px', color: 'action.active'}}>{classroom.sessions}</Box></Typography>
+              <Typography style={{fontSize: '16px'}}>Last Start: <Box component="span" sx={{fontSize: '14px', color: 'action.active'}}>{getLastStart(classroom.id)}</Box></Typography>
             </CardContent>
             <CardActions>
               <Link to={`/classrooms/${classroom.id}`} style={{textDecoration: 'none'}}>

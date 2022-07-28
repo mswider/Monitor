@@ -4,6 +4,7 @@ import Divider from '@mui/material/Divider';
 import Avatar from '@mui/material/Avatar';
 import Tooltip from '@mui/material/Tooltip';
 import Icon from '@mui/material/Icon';
+import Box from '@mui/material/Box';
 
 function Chat(props) {
   const [members, setMembers] = useState({});
@@ -69,21 +70,29 @@ function Chat(props) {
                       )}
                     </React.Fragment>
                   )}
-                  <div style={message.sender.type=='admin'?{display: 'flex', flexDirection: 'column'}:{}}>
-                    <div style={{
-                        padding: '8px', 
-                        borderRadius: '16px', 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        backgroundColor: message.sender.type == 'admin' ? ( message.payload.type == 'announcement' ? '#FFECB3' : '#E0E0E0' ) : '#64B5F6', 
-                        borderBottomLeftRadius: message.sender.type == 'admin' ? '4px' : '16px', 
-                        borderBottomRightRadius: message.sender.type == 'admin' ? '16px' : '4px'
-                      }}>
+                  <Box sx={message.sender.type == 'admin' && {display: 'flex', flexDirection: 'column'}}>
+                    <Box 
+                      sx={[
+                        {
+                          p: 1, 
+                          borderRadius: 4, 
+                          display: 'flex', 
+                          alignItems: 'center',
+                        },
+                        message.sender.type == 'admin' ? theme => ({
+                          bgcolor: message.payload.type == 'announcement' ? 'chat.announcement' : 'chat.teacher',
+                          borderBottomLeftRadius: theme.spacing(0.5)
+                        }) : theme => ({
+                          bgcolor: 'chat.student',
+                          borderBottomRightRadius: theme.spacing(0.5)
+                        })
+                      ]}
+                    >
                       {message.payload.type == 'announcement' && <Icon style={{marginRight: '8px'}}>announcement</Icon>}
                       <Typography variant='h6'>{message.payload.content}</Typography>
-                    </div>
+                    </Box>
                     <p style={{fontFamily: 'Roboto', margin: '5px 0', fontSize: '0.9em', float: message.sender.type=='admin'?'left':'right'}}>{formattedDate(message.timestamp)}</p>
-                  </div>
+                  </Box>
                 </div>
               )}
             </div>

@@ -63,7 +63,7 @@ function Header({ rightElement, right, leftElement, left }) {
   };
   return (
     <React.Fragment>
-      <AppBar style={{backgroundColor: '#1976D2'}}>
+      <AppBar>
         <Toolbar>
           {elements.left}
           <Typography variant='h6' style={{position: 'absolute', left: '50%', transform: 'translate(-50%, 0)'}}>GoGuardian Monitor</Typography>

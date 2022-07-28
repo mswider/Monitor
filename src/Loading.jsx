@@ -1,16 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { keyframes } from '@mui/system';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
 
 function Loading() {
-  const [rotation, setRotation] = useState(0);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      let newRotation = rotation + 2;
-      if (newRotation == 360) newRotation = 0;
-      setRotation(newRotation);
-    }, 10);
-    return () => clearTimeout(timer);
-  }, [rotation, setRotation]);
+  const spin = keyframes`
+    from {
+      transform: translate(-50%, -50%) rotate(0deg);
+    }
+    to {
+      transform: translate(-50%, -50%) rotate(360deg);
+    }
+  `;
 
   const spinnerStyle = {
     position: 'absolute',
@@ -18,18 +19,25 @@ function Loading() {
     left: '50%',
     width: '100px',
     height: '100px',
-    border: '4px solid #000',
+    border: theme => `4px solid ${theme.palette.text.primary}`,
     borderRadius: '50%',
-    borderTopColor: 'transparent'
+    borderTopColor: 'transparent',
+    animation: `${spin} 1s infinite linear`
+  };
+  const textStyle = {
+    fontWeight: 'bold',
+    position: 'absolute',
+    transform: 'translate(-50%, 0)',
+    left: '50%',
+    bottom: '1.5em'
   };
   return (
-    <div style={{height: '100vh', position: 'relative', fontFamily: '"system-ui", sans-serif'}}>
-      <div style={{...spinnerStyle, transform: `translate(-50%, -50%) rotate(${rotation}deg)`}}>
-      </div>
-      <h1 style={{fontSize: '3em', position: 'absolute', left: '50%', transform: 'translate(-50%, 0)', bottom: '10%'}}>
+    <>
+      <Box sx={spinnerStyle} />
+      <Typography variant='h3' sx={textStyle}>
         GoGuardian Monitor
-      </h1>
-    </div>
+      </Typography>
+    </>
   );
 }
 
