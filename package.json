@@ -1,6 +1,6 @@
 {
   "name": "goguardian-monitor",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "A tool to interact with GoGuardian's chat APIs",
   "main": "index.js",
   "scripts": {
