@@ -3,6 +3,10 @@
   <head>
     <meta charset="utf-8">
     <title>GoGuardian Monitor</title>
+    <script>
+      let APP_VERSION = '%SNOWPACK_PUBLIC_VERSION%';
+      if (APP_VERSION.startsWith('%SNOWPACK')) APP_VERSION = '1.0.0';
+    </script>
     <script type="module" src="./index.js"></script>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
