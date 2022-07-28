@@ -27,9 +27,9 @@ function SessionHistory(props) {
             </TableRow>
           </TableHead>
           <TableBody sx={{ 'tr:last-child td': { borderBottom: 'none' } }}>
-            {props.history.map((e, index) =>
+            {props.history.map(e =>
               <TableRow key={e.id}>
-                <TableCell style={index+1==props.history.length?{borderBottom:'none'}:{}}>
+                <TableCell>
                   <Link to={`/classrooms/${e.classroomId}`} style={{color: 'unset', textDecoration: 'none'}}>
                     {e.name}
                   </Link>
