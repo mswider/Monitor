@@ -26,7 +26,7 @@ function SessionHistory(props) {
               <TableCell align='right'>Duration</TableCell>
             </TableRow>
           </TableHead>
-          <TableBody>
+          <TableBody sx={{ 'tr:last-child td': { borderBottom: 'none' } }}>
             {props.history.map((e, index) =>
               <TableRow key={e.id}>
                 <TableCell style={index+1==props.history.length?{borderBottom:'none'}:{}}>
@@ -34,8 +34,8 @@ function SessionHistory(props) {
                     {e.name}
                   </Link>
                 </TableCell>
-                <TableCell align='center' style={index+1==props.history.length?{borderBottom:'none'}:{}}>{e.date}</TableCell>
-                <TableCell align='right' style={index+1==props.history.length?{borderBottom:'none'}:{}}>{e.endMs ? getDiff(e.startMs, e.endMs) : 'In Progress'}</TableCell>
+                <TableCell align='center'>{e.date}</TableCell>
+                <TableCell align='right'>{e.endMs ? getDiff(e.startMs, e.endMs) : 'In Progress'}</TableCell>
               </TableRow>
             )}
           </TableBody>
