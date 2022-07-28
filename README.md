@@ -8,6 +8,7 @@
 * **Multi-User Monitoring:** Track activity of up to 5 students at once
 * **Chat Service:** View chat messages from any student in saved sessions
 * **Classroom Stats:** Access session history, classroom admins, and a list of students in a class
+* **Dark Mode**
 * **Chat Client:** Chat with your teachers from anywhere, even without GoGuardian installed
 * **Desktop Notifications:** Get notified when tracked students join a class
 * **Data Backups:** Keep your data even if the server isn't running
