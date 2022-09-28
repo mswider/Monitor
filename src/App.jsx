@@ -9,6 +9,7 @@ import Header from './Header.jsx';
 import Dashboard from './Dashboard.jsx';
 import LiveChat from './LiveChat.jsx';
 import Settings from './Settings.jsx';
+import SettingsNew from './Settings';
 import Classroom from './Classroom.jsx';
 import UserSearch from './Search.jsx';
 import StudentInfo from './StudentInfo.jsx';
@@ -27,18 +28,27 @@ function App() {
             student: blue[500],
             announcement: amber[600],
             teacher: grey[600]
-          }
+          },
+          codeHighlight: grey[700]
         } : {
           mode: 'light',
           chat: {
             student: blue[300],
             announcement: amber[200],
             teacher: grey[300]
+          },
+          codeHighlight: grey[200],
+          background: {
+            default: grey[100]
           }
         }
       }),
     [prefersDarkMode],
   );
+  const refreshMode = async () => {
+    const data = await fetch('./needsConfig').then(res => res.json());
+    data ? setConfigMode(true) : setConfigMode(false);
+  };
 
   const routes = [
     ['/chat/:sessionId/:studentAID', <ChatViewer />],
@@ -48,14 +58,12 @@ function App() {
     ['/search', <UserSearch />],
     ['/dashboard', <Dashboard />, {header: {left: 'menu', right: 'settings'}}],
     ['/settings', <Settings />, {noAuth: true, header: {left: configMode ? '' : 'back', right: 'save'}}],
+    ['/settingsNew', <SettingsNew refreshMode={refreshMode} />, {noAuth: true, header: {left: configMode ? '' : 'back', right: 'save', elevation: 0}}],
     ['/*', <Navigate to='/dashboard' replace />, {}]
   ];
 
-  useEffect(() => {
-    fetch('./needsConfig').then(res => res.json()).then(data => {
-      data ? setConfigMode(true) : setConfigMode(false);
-    });
-  }, []);
+  useEffect(refreshMode, []);
+  useEffect(() => console.log('theme:', theme), [theme]);
 
   return (
     <ThemeProvider theme={theme}>
@@ -65,7 +73,7 @@ function App() {
           {routes.map(([path, element, options = { header: { left: 'back', right: 'settings' } }]) => 
             <Route path={path} element={(
               <SetupRedirect redirect={!options.noAuth && configMode}>
-                {options.header && <Header right={options.header.right} left={options.header.left} />}
+                {options.header && <Header {...options.header} />}
                 {element}
               </SetupRedirect>
               )}

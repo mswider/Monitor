@@ -12,7 +12,7 @@ import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
 import ListItemIcon from '@mui/material/ListItemIcon';
 
-function Header({ rightElement, right, leftElement, left }) {
+function Header({ rightElement, right, leftElement, left, ...params }) {
   const [drawerIsOpen, setDrawerIsOpen] = useState(false);
 
   const getComponent = type => {
@@ -63,7 +63,7 @@ function Header({ rightElement, right, leftElement, left }) {
   };
   return (
     <React.Fragment>
-      <AppBar>
+      <AppBar {...params}>
         <Toolbar>
           {elements.left}
           <Typography variant='h6' style={{position: 'absolute', left: '50%', transform: 'translate(-50%, 0)'}}>GoGuardian Monitor</Typography>
