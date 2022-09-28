@@ -5,7 +5,7 @@
 ![dashboard](https://user-images.githubusercontent.com/37093293/119205564-27a8d400-ba5e-11eb-9a1d-9b9ac6a5fd86.png)
 
 ## Features
-* **Multi-User Monitoring:** Track activity of up to 5 students at once
+* **Multi-User Monitoring:** Track activity of several students at once
 * **Chat Service:** View chat messages from any student in saved sessions
 * **Classroom Stats:** Access session history, classroom admins, and a list of students in a class
 * **Dark Mode**
@@ -52,8 +52,8 @@ Here's a list of parameters available:
 ### Configuration
 Once you've started the server, open its web page in your browser.  
 By default, this will be at [localhost:3000](http://localhost:3000/) for your own computer.  
-Once there, you will be redirected to a settings page where you can add up to 5 "CompRands".  
-For now, 5 is the limit but only 1 is required to get started.  
+Once there, you will be redirected to a settings page where you can add "CompRands".  
+Only 1 is required to get started, but you can add as many as you want.  
 If you don't have a CompRand yet, go to [Account Creation](#goguardian-account-creation) to learn how to get one.  
 Once the server is configured with valid CompRands, a back button will appear on the top-left of the screen. Click it and you will be taken to the dashboard.  
 *If you've made it this far, great! All the setup is now complete.*  
