@@ -6,7 +6,7 @@ import Tab from '@mui/material/Tab';
 import Box from '@mui/material/Box';
 
 function Settings({ refreshMode }) {
-  const [view, setView] = useState(1);
+  const [view, setView] = useState(0);
   const views = [['Accounts', <Accounts refreshMode={refreshMode} />], ['Config', <Config />]];
 
   return (

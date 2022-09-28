@@ -8,7 +8,6 @@ import Loading from './Loading.jsx';
 import Header from './Header.jsx';
 import Dashboard from './Dashboard.jsx';
 import LiveChat from './LiveChat.jsx';
-import Settings from './Settings.jsx';
 import SettingsNew from './Settings';
 import Classroom from './Classroom.jsx';
 import UserSearch from './Search.jsx';
@@ -57,8 +56,7 @@ function App() {
     ['/studentInfo/:studentAID', <StudentInfo />],
     ['/search', <UserSearch />],
     ['/dashboard', <Dashboard />, {header: {left: 'menu', right: 'settings'}}],
-    ['/settings', <Settings />, {noAuth: true, header: {left: configMode ? '' : 'back', right: 'save'}}],
-    ['/settingsNew', <SettingsNew refreshMode={refreshMode} />, {noAuth: true, header: {left: configMode ? '' : 'back', right: 'save', elevation: 0}}],
+    ['/settings', <SettingsNew refreshMode={refreshMode} />, {noAuth: true, header: {left: configMode ? '' : 'back', right: 'save', elevation: 0}}],
     ['/*', <Navigate to='/dashboard' replace />, {}]
   ];
 
