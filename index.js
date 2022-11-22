@@ -307,7 +307,7 @@ class DeviceManager {
     });
     return sessions;
   }
-  async getChatsForSession(deviceID, sessions) {
+  async getChatsForSessions(deviceID, sessions) {
     if (!this.#devices.has(deviceID)) throw new Error(`Not currently monitoring device with id ${deviceID}`);
     const device = this.#devices.get(deviceID);
     const aid = device.info.accountId;
@@ -343,7 +343,8 @@ class DeviceManager {
     DeviceManager.log(`Monitoring ${this.#devices.size} device${this.#devices.size != 1 ? 's' : ''}`);
   }
   async register(orgID) {
-    const deviceID = await Device.register(orgID)
+    const deviceID = await Device.register(orgID);
+    await new Promise(e => setTimeout(e, 2000));  // One time I got a 403 right after registration so their db is wack ig
     await this.add(deviceID);
     return deviceID;
   }
@@ -483,7 +484,7 @@ app.get('/needsConfig', (req, res) => {
 const deviceApi = express.Router();
 const tasks = {};  // [id]: {completed, success, result}
 
-const asyncHandler = fn => (req, res, next) =>  Promise.resolve(fn(req, res, next)).catch(next);
+const asyncHandler = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 const checkID = (req, res, next) => req.header('device') ? next() : res.status(400).send('No device ID given');
 
 deviceApi.get('/list', (req, res) => {
@@ -713,14 +714,16 @@ const updateChatsByComprand = async (comprand, aid, sessions) => {
   }
 };
 
+const chatAPI = express.Router();
+
 // Query params: comprand, aid
-app.get('/api/chat/updateStudent', async (req, res) => {
+chatAPI.get('/updateStudent', async (req, res) => {
   const comprandIsValid = req.query.comprand && comprandArray.map(e => e.id).includes(req.query.comprand);
   const aidIsValid = people[req.query.aid] && people[req.query.aid].type == 'student';
   if (comprandIsValid && aidIsValid) {
     res.sendStatus(202);
     const classesWithStudent = Object.keys(classrooms).filter(e => classrooms[e].people.includes(parseInt(req.query.aid)));
-    const sessionsWithStudent = classroomHistory.filter(e => classesWithStudent.includes(e.classroomId.toString())).map(e => e.id);
+    const sessionsWithStudent = classroomHistory.filter(e => classesWithStudent.includes(e.classroomId.toString())).filter(e => e.endMs).map(e => e.id);
     const sessionsToRecord = getChatStatusByAid(req.query.aid, sessionsWithStudent)[1];  //Only record sessions we don't have yet
     formatLog(`Updating chats for ${people[req.query.aid].name}, ${sessionsToRecord.length} session${sessionsToRecord.length != 1 ? 's' : ''} will be recorded`);
     try {
@@ -739,17 +742,45 @@ app.get('/api/chat/updateStudent', async (req, res) => {
     res.status(400).send({comprandIsValid, aidIsValid});
   }
 });
-app.get('/api/chat/messages/:accountAID', (req, res) => {
+chatAPI.post('/update', checkID, asyncHandler(async (req, res) => {
+  const validators = { aid: e => people[e] && people[e].type == 'student' };
+  const [valid, errMsg] = validate(req.body, validators);
+  if (valid) {
+    const taskID = uuid.v4();
+    tasks[taskID] = { completed: false, success: null, result: null };
+    res.status(202).json({ taskID });
+    try {
+      const classesWithStudent = Object.keys(classrooms).filter(e => classrooms[e].people.includes(req.body.aid));
+      const sessionsWithStudent = classroomHistory.filter(e => classesWithStudent.includes(e.classroomId.toString())).filter(e => e.endMs).map(e => e.id);
+      const [_, sessionsToRecord] = getChatStatusByAid(req.body.aid, sessionsWithStudent);
+      formatLog(`Updating chats for ${people[req.body.aid].name}, ${sessionsToRecord.length} session${sessionsToRecord.length != 1 ? 's' : ''} will be recorded`);
+      const currentAID = manager.getAllDevices()[req.header('device')].info.accountId;
+      if (currentAID != req.body.aid) {
+        if (loggingIsVerbose) formatLog(`Need to assign device to ${people[req.body.aid].email}`);
+        await manager.assign(req.header('device'), people[req.body.aid].name, people[req.body.aid].email);
+      }
+      await manager.getChatsForSessions(req.header('device'), sessionsToRecord);
+      formatLog(`Finished chat update for ${people[req.body.aid].name}`);
+      tasks[taskID] = { completed: true, success: true, result: null };
+    } catch (error) {
+      tasks[taskID] = { completed: true, success: false, result: null };
+      throw error;
+    }
+  } else {
+    res.status(400).send(errMsg);
+  }
+}));
+chatAPI.get('/messages/:accountAID', (req, res) => {
   const chats = studentChats[req.params.accountAID];
   const studentExists = people[req.params.accountAID] != undefined;
   chats ? res.send(chats) : ( studentExists ? res.send({}) : res.sendStatus(400) );
 });
-app.get('/api/chat/messages', (req, res) => {
+chatAPI.get('/messages', (req, res) => {
   res.send(studentChats);
 });
-app.get('/api/chat/classroomStatus/:classId', (req, res) => {
+chatAPI.get('/classroomStatus/:classId', (req, res) => {
   if (classrooms[req.params.classId]) {
-    const sessionsForClass = classroomHistory.filter(e => e.classroomId == req.params.classId).map(e => e.id);
+    const sessionsForClass = classroomHistory.filter(e => e.classroomId == req.params.classId).filter(e => e.endMs).map(e => e.id);
     let studentStatus = {};
     classrooms[req.params.classId].people.map(studentAID => {
       studentStatus[studentAID] = getChatStatusByAid(studentAID, sessionsForClass)[0];
@@ -759,10 +790,10 @@ app.get('/api/chat/classroomStatus/:classId', (req, res) => {
     res.sendStatus(400);
   }
 });
-app.get('/api/chat/studentStatus/:studentAID', (req, res) => {
+chatAPI.get('/studentStatus/:studentAID', (req, res) => {
   if (people[req.params.studentAID]) {
     const classesWithStudent = Object.keys(classrooms).filter(e => classrooms[e].people.includes(parseInt(req.params.studentAID)));
-    const sessionsWithStudent = classroomHistory.filter(e => classesWithStudent.includes(e.classroomId.toString())).map(e => e.id);
+    const sessionsWithStudent = classroomHistory.filter(e => classesWithStudent.includes(e.classroomId.toString())).filter(e => e.endMs).map(e => e.id);
     const status = getChatStatusByAid(req.params.studentAID, sessionsWithStudent);
     res.send({code: status[0], sessionsNeeded: status[1].length});
   } else {
@@ -946,5 +977,6 @@ const leaveClass = (classInfo, comprand) => {
 
 api.use('/devices', deviceApi);
 api.use('/tasks', tasksAPI);
+api.use('/chat', chatAPI);
 app.use('/api', api);
 app.listen(port, formatLog(`App started on port ${port}.`));
