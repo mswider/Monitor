@@ -57,6 +57,7 @@ class Device {
   id;
   info;
   inactive = false;
+  locked = true;
   #socket;
   #sessions = [];
 
@@ -186,6 +187,7 @@ class Device {
     this.inactive = true;
   }
   async assign(name, email) {
+    if (this.locked) throw new Error('Device is locked');
     if (this.inactive) throw new Error('Device is no longer active');
     this.destroy();
     Device.log(`attempting to assign ${this.id} to ${name} (${email})`);
@@ -291,8 +293,15 @@ class DeviceManager {
   }
   getAllDevices() {
     let list = {};
-    this.#devices.forEach(({info}, id) => (list[id] = {info}));
+    this.#devices.forEach(({ info, inactive, locked }, id) => (list[id] = { info, inactive, locked }));
     return list;
+  }
+  setLocked(deviceID, isLocked) {
+    if (!this.#devices.has(deviceID)) throw new Error(`Not currently monitoring device with id ${deviceID}`);
+    const device = this.#devices.get(deviceID);
+    const oldLocked = device.locked;
+    device.locked = isLocked;
+    if (isLocked != oldLocked) DeviceManager.log(`${deviceID} has been ${isLocked ? 'locked' : 'unlocked'}`);
   }
   getSessions() {
     let sessions = {};  // [id]: {info, devices}
@@ -489,6 +498,16 @@ const checkID = (req, res, next) => req.header('device') ? next() : res.status(4
 
 deviceApi.get('/list', (req, res) => {
   res.json(manager.getAllDevices());
+});
+deviceApi.post('/locked', checkID, (req, res) => {
+  const validators = { locked: e => typeof e == 'boolean' };
+  const [valid, errMsg] = validate(req.body, validators);
+  if (valid) {
+    manager.setLocked(req.header('device'), req.body.locked);
+    res.sendStatus(200);
+  } else {
+    res.status(400).send(errMsg);
+  }
 });
 deviceApi.get('/sessions', (req, res) => {
   res.json(manager.getSessions());
