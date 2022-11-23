@@ -497,10 +497,10 @@ deviceApi.get('/interval', (req, res) => {
   res.json({ interval: manager.getUpdateInterval() / 1000 });
 });
 deviceApi.post('/interval', (req, res) => {
-  const validators = { interval: e => /^[0-9]+$/.test(e) && parseInt(e) >= 1 };
+  const validators = { interval: e => typeof e == 'number' && e >= 1 };
   const [valid, errMsg] = validate(req.body, validators);
   if (valid) {
-    manager.changeUpdateInterval(parseInt(req.body.interval) * 1000);
+    manager.changeUpdateInterval(req.body.interval * 1000);
     res.sendStatus(200);
   } else {
     res.status(400).send(errMsg);
