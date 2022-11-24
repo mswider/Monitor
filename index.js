@@ -542,7 +542,9 @@ deviceApi.post('/new', asyncHandler(async (req, res) => {
     res.status(202).json({ taskID });
     try {
       const deviceID = await manager.register(req.body.orgID);
+      manager.setLocked(deviceID, false);
       await manager.assign(deviceID, req.body.name, req.body.email);
+      manager.setLocked(deviceID, true);
       tasks[taskID] = { completed: true, success: true, result: deviceID };
     } catch (error) {
       tasks[taskID] = { completed: true, success: false, result: null };
