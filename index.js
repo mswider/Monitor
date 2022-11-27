@@ -488,7 +488,7 @@ const changeComprandAccount = async (comprand, email, name) => {
 };
 
 //  ----------  Initial Setup  ----------
-app.get('/needsConfig', (req, res) => {
+api.get('/needsConfig', (req, res) => {
   res.send(needsConfig);
 });
 
@@ -530,6 +530,7 @@ deviceApi.post('/interval', (req, res) => {
 });
 deviceApi.post('/add', checkID, asyncHandler(async (req, res) => {
   await manager.add(req.header('device'));
+  needsConfig = false;
   res.sendStatus(200);
 }));
 deviceApi.post('/new', asyncHandler(async (req, res) => {
@@ -548,6 +549,7 @@ deviceApi.post('/new', asyncHandler(async (req, res) => {
       manager.setLocked(deviceID, false);
       await manager.assign(deviceID, req.body.name, req.body.email);
       manager.setLocked(deviceID, true);
+      needsConfig = false;
       tasks[taskID] = { completed: true, success: true, result: deviceID };
     } catch (error) {
       tasks[taskID] = { completed: true, success: false, result: null };

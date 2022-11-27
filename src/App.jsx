@@ -45,7 +45,7 @@ function App() {
     [prefersDarkMode],
   );
   const refreshMode = async () => {
-    const data = await fetch('./needsConfig').then(res => res.json());
+    const data = await fetch('./api/needsConfig').then(res => res.json());
     data ? setConfigMode(true) : setConfigMode(false);
   };
 
