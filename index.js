@@ -305,6 +305,7 @@ class DeviceManager {
   }
   getSessions() {
     let sessions = {};  // [id]: {info, devices}
+    let activeDevices = {};
     this.#devices.forEach(device => {
       device.getSessions().map(session => {
         if (sessions[session.id]) {
@@ -312,9 +313,11 @@ class DeviceManager {
         } else {
           sessions[session.id] = { info: session, devices: [ device.id ] };
         }
+        const { info } = device;
+        activeDevices[device.id] = { email: info.emailOnFile, name: people[info.accountId]?.name, sid: info.subAccountId };
       });
     });
-    return sessions;
+    return { sessions, devices: activeDevices };
   }
   async getChatsForSessions(deviceID, sessions) {
     if (!this.#devices.has(deviceID)) throw new Error(`Not currently monitoring device with id ${deviceID}`);
