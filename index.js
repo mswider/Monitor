@@ -652,16 +652,16 @@ app.get('/info/people', (req, res) => {
 app.get('/info/pusher', (req, res) => {
   res.send({key: pusherKey, version: extensionVersion, ggVersion: pusherGGVersion});
 });
-app.post('/pusher/authproxy', async (req, res) => { //Needed to circumvent CORS
+app.post('/pusher/authproxy', asyncHandler(async (req, res) => { //Needed to circumvent CORS
   const response = await fetch(pusherAuthEndpoint, {method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': req.header('Authorization')}, body: req.body});
   const json = await response.json();
   res.status(response.status).send(json);
-});
-app.get('/pusher/history/:session', async (req, res) => { //Also needed to circumvent CORS
+}));
+app.get('/pusher/history/:session', asyncHandler(async (req, res) => { //Also needed to circumvent CORS
   const response = await fetch(`https://snat.goguardian.com/api/v1/ext/chat-messages?sessionId=${req.params.session}`, {headers: {'Authorization': req.header('Auth')}});
   const json = await response.json();
   res.status(response.status).send(json);
-});
+}));
 
 api.use('/devices', deviceApi);
 api.use('/tasks', tasksAPI);
