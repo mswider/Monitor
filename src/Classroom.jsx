@@ -54,7 +54,7 @@ function Classroom() {
         <div style={{padding: '12px', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-evenly'}}>
           {state.classroomInfo.people.map(e =>
             <Paper key={e} variant='outlined' style={{display: 'flex', padding: '8px', margin: '4px'}}>
-              <Link to={'/studentInfo/' + e} style={{color: 'unset', textDecoration: 'none'}}>
+              <Link to={`/student/${e}`} style={{color: 'unset', textDecoration: 'none'}}>
                 <Tooltip title={state.people[e].email}>
                   <Typography variant='h5' style={{marginRight: '5px'}}>{state.people[e].name}</Typography>
                 </Tooltip>

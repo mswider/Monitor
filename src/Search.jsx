@@ -73,7 +73,7 @@ function SearchResults(props) {
   if (studentsFound.length != 0) return (
     <List>
       {studentsFound.map(e =>
-        <Link to={'/studentInfo/' + e.aid} style={{textDecoration: 'none', color: 'unset'}} key={e.aid}>
+        <Link to={`/student/${e.aid}`} style={{textDecoration: 'none', color: 'unset'}} key={e.aid}>
           <ListItem button>
             <ListItemText primary={e.name} secondary={
               <React.Fragment>

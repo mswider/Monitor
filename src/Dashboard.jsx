@@ -8,39 +8,22 @@ import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
 import ListItemIcon from '@mui/material/ListItemIcon';
+import ListSubheader from '@mui/material/ListSubheader';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import CardActions from '@mui/material/CardActions';
 import Button from '@mui/material/Button';
-import Tooltip from '@mui/material/Tooltip';
 import Box from '@mui/material/Box';
 import SessionHistory from './SessionHistory.jsx'
 
 function Dashboard() {
-  const [liveChats, setLiveChats] = useState([]);
+  const [sessions, setSessions] = useState({ sessions: {}, devices: {} });
   const [classHistory, setClassHistory] = useState([]);
   const [classrooms, setClassrooms] = useState([]);
 
   const updateClasses = async () => {
-    const userInfo = await fetch('./setup/comprands').then(res => res.json());
-    fetch('./info/classes').then(res => res.json()).then(async (data) => {
-      let classesArray = [];
-      for (var i in data) {
-        if (data[i].sessions.length != 0) {
-          let email = '';
-          for (var x in userInfo) {
-            if (userInfo[x].id == data[i].id) email = userInfo[x].data.emailOnFile;
-          }
-          const userName = await fetch('./info/people').then(res => res.json()).then(people => {
-            const formattedPeople = Object.keys(people).map(e => { return {email: people[e].email, name: people[e].name}; });
-            const filteredPerson = formattedPeople.filter(e => e.email == email)[0];
-            return filteredPerson ? filteredPerson.name : email;  //Use email as name fallback
-          });
-          classesArray.push({name: userName, email: email, class: data[i].sessions[0].classroomName});
-        }
-      }
-      setLiveChats(classesArray);
-    });
+    await fetch('./api/devices/sessions').then(res => res.json()).then(setSessions);
+    
     const historyResponse = await fetch('./info/classHistory').then(res => res.json());
     setClassHistory(historyResponse);
     fetch('./info/classrooms').then(res => res.json()).then(data => {
@@ -70,24 +53,23 @@ function Dashboard() {
   const widgetStyle = {
     flexGrow: 1,
     flexBasis: 0,
-    textAlign: 'center',
     maxHeight: 'calc(100vh - 98px)',  //98px = 64px + 16px + 1px + 1px + 16
     overflowY: 'auto'
   };
   return (
     <div style={{marginTop: '64px', padding: '16px', display: 'flex', alignItems: 'flex-start'}}>
       <Paper variant='outlined' style={{...widgetStyle, marginRight: '8px'}}>
-        <Typography variant='h4'>Live Chats</Typography>
+        <Typography variant='h4' sx={{ textAlign: 'center' }}>Sessions</Typography>
         <Divider />
-        <LiveChat chats={liveChats} />
+        <LiveSessions sessions={Object.entries(sessions.sessions)} devices={sessions.devices} />
       </Paper>
       <Paper variant='outlined' style={{...widgetStyle, margin: '0 8px'}}>
-        <Typography variant='h4'>Classes</Typography>
+        <Typography variant='h4' sx={{ textAlign: 'center' }}>Classes</Typography>
         <Divider />
         <Classrooms classrooms={classrooms} history={classHistory} />
       </Paper>
       <Paper variant='outlined' style={{...widgetStyle, marginLeft: '8px'}}>
-        <Typography variant='h4'>Class History</Typography>
+        <Typography variant='h4' sx={{ textAlign: 'center' }}>Class History</Typography>
         <Divider />
         <SessionHistory history={classHistory} />
       </Paper>
@@ -142,28 +124,33 @@ function Classrooms(props) {
   );
 }
 
-function LiveChat(props) {
+function LiveSessions({ sessions, devices }) {
   return (
-    <React.Fragment>
-      {props.chats.length == 0 ? (
-        <Typography variant='h6' style={{color: '#757575', margin: '1em 0', fontStyle: 'italic'}}>No Live Chats</Typography>
+    <>
+      {sessions.length == 0 ? (
+        <Typography variant='h6' sx={{ color: 'grey.600', margin: '1em 0', fontStyle: 'italic', textAlign: 'center' }}>No Current Sessions</Typography>
       ) : (
         <List component='nav'>
-          {props.chats.map((person) =>
-            <Link to={`/liveChat/${person.email}`}  key={person.email} style={{color: 'unset', textDecoration: 'unset'}}>
-              <Tooltip title={person.class}>
-                <ListItem button>
-                  <ListItemIcon>
-                    <Icon style={{color: '#64dd17'}}>fiber_manual_record</Icon>
-                  </ListItemIcon>
-                  <ListItemText primary={person.name} />
-                </ListItem>
-              </Tooltip>
-            </Link>
+          {sessions.map(([id, session]) =>
+            <>
+              <Link to={`/classrooms/${session.info.classroomId}`} style={{ color: 'unset', textDecoration: 'unset' }}>
+                <ListSubheader>{session.info.classroomName}</ListSubheader>
+              </Link>
+              {session.devices.map(deviceID => 
+                <Link to={`/session/${devices[deviceID].sid}/${id}`} style={{ color: 'unset', textDecoration: 'unset' }}>
+                  <ListItem button>
+                    <ListItemIcon>
+                      <Icon sx={{ color: '#64dd17' }}>fiber_manual_record</Icon>
+                    </ListItemIcon>
+                    <ListItemText primary={devices[deviceID].name || devices[deviceID].email} />
+                  </ListItem>
+                </Link>
+              )}
+            </>
           )}
         </List>
       )}
-    </React.Fragment>
+    </>
   );
 }
 

@@ -7,11 +7,11 @@ import { blue, amber, grey } from '@mui/material/colors';
 import Loading from './Loading.jsx';
 import Header from './Header.jsx';
 import Dashboard from './Dashboard.jsx';
-import LiveChat from './LiveChat.jsx';
-import SettingsNew from './Settings';
+import Session from './Session';
+import Settings from './Settings';
 import Classroom from './Classroom.jsx';
 import UserSearch from './Search.jsx';
-import StudentInfo from './StudentInfo.jsx';
+import Student from './Student';
 import ChatViewer from './ChatViewer.jsx';
 
 function App() {
@@ -51,12 +51,12 @@ function App() {
 
   const routes = [
     ['/chat/:sessionId/:studentAID', <ChatViewer />],
-    ['/liveChat/:email', <LiveChat />],
+    ['/session/:subAccountId/:sessionId', <Session />],
     ['/classrooms/:classroomId', <Classroom />],
-    ['/studentInfo/:studentAID', <StudentInfo />],
+    ['/student/:studentAID', <Student />],
     ['/search', <UserSearch />],
     ['/dashboard', <Dashboard />, {header: {left: 'menu', right: 'settings'}}],
-    ['/settings', <SettingsNew refreshMode={refreshMode} />, {noAuth: true, header: {left: configMode ? '' : 'back', right: 'save', elevation: 0}}],
+    ['/settings', <Settings refreshMode={refreshMode} />, {noAuth: true, header: {left: configMode ? '' : 'back', right: 'save', elevation: 0}}],
     ['/*', <Navigate to='/dashboard' replace />, {}]
   ];
 

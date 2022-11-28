@@ -9,10 +9,12 @@ import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
 import CircularProgress from '@mui/material/CircularProgress';
+import { post } from './utils';
 
 function StudentInfo() {
   const isInit = useRef(true);
@@ -20,10 +22,11 @@ function StudentInfo() {
   const allClasses = useRef();
   const classHistory = useRef();
   const studentClassrooms = useRef([]);
-  const updateInterval = useRef();
   const [studentInfo, setStudentInfo] = useState();
-  const [chatStatus, setChatStatus] = useState({});
+  const [chatStatus, setChatStatus] = useState({ code: 1, sessionsNeeded: 1 });
   const [chats, setChats] = useState({});
+  const [updating, setUpdating] = useState(false);
+  const polling = useRef();
 
   const loadChatData = async aid => {
     await fetch(`./api/chat/studentStatus/${aid}`).then(res => res.json()).then(data => setChatStatus(data));
@@ -33,14 +36,17 @@ function StudentInfo() {
     });
   };
 
-  const updateChatStatus = aid => {
-    updateInterval.current = setInterval(async () => {
-      await loadChatData(aid);
-      setChatStatus(chatStatus => { //wack
-        if (chatStatus.code == 2) clearInterval(updateInterval.current);
-        return chatStatus;
-      })
-    }, 5000);
+  const updateChats = async deviceID => {
+    setUpdating(true);
+    const { taskID } = await post('./api/chat/update', { aid: studentInfo.aid }, { device: deviceID }).then(res => res.json());
+    polling.current = setInterval(async () => {
+      const { completed } = await fetch(`./api/tasks/${taskID}`).then(res => res.json());
+      if (completed) {
+        clearInterval(polling.current);
+        setUpdating(false);
+        await loadChatData(studentInfo.aid);
+      }
+    }, 2500);
   };
 
   const ClassroomViewer = useMemo(() => //Prevent classrooms from changing color while we're updating chats bc it looks weird
@@ -55,7 +61,8 @@ function StudentInfo() {
       isInit.current = false;
     }
     setStudentInfo(null);
-    clearInterval(updateInterval.current);
+    setUpdating(false);
+    clearInterval(polling.current);
 
     const accountAID = Number(studentAID);  //This is a string but we need it as a number
     if (!isNaN(accountAID)) {  //Needed to prevent errors if someone makes the param an actual string Ex: "hello_world"
@@ -74,7 +81,7 @@ function StudentInfo() {
       }
     }
   }, [studentAID]);
-  useEffect(() => () => clearInterval(updateInterval.current), []); //Clear chat update interval on unmount
+  useEffect(() => () => clearInterval(polling.current), []); //Clear chat update interval on unmount
   return (
     <Container style={{marginTop: '64px', paddingTop: '24px'}}>
       {studentInfo ? (
@@ -86,7 +93,7 @@ function StudentInfo() {
           {ClassroomViewer}
           <div style={{display: 'flex', alignItems: 'flex-end'}}>
             <Typography variant='h4' style={{marginBottom: '5px'}}>Chats: <span style={{color: '#757575'}}>{Object.keys(chats).length}</span></Typography>
-            <ChatStatus status={chatStatus} aid={studentInfo.aid} update={updateChatStatus} />
+            <ChatStatus code={chatStatus.code} sessionsNeeded={chatStatus.sessionsNeeded} updating={updating} aid={studentInfo.aid} update={updateChats} />
           </div>
           <Divider />
           <div style={{padding: '12px', display: 'flex', flexWrap: 'wrap'}}>
@@ -109,87 +116,69 @@ function StudentInfo() {
   );
 }
 
-function ChatStatus(props) {
+function ChatStatus({ code, sessionsNeeded, updating, aid, update }) {
   const [message, setMessage] = useState({text: '', color: '#000'});
-  const [workersAvailable, setWorkersAvailable] = useState({state: false, needsPermissionChange: false});
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [updating, setUpdating] = useState(false);
+  const [devices, setDevices] = useState([]);
 
+  const handleClick = () => {
+    const deviceForAccount = devices.find(([_, device]) => device.info.accountId == aid);
+    if (deviceForAccount) {
+      update(deviceForAccount[0]);
+    } else {
+      setDialogOpen(true);
+    }
+  };
+
+  useEffect(() => {
+    const color = ['#b00020', '#ffab00', '#388e3c'][code];
+    let content = '';
+    if (code == 0) content = `No chats have been recorded yet, and ${sessionsNeeded} session${sessionsNeeded != 1 ? 's still need' : ' still needs'} to be recorded.`;
+    if (code == 1) content = `Some chats have been recorded, and ${sessionsNeeded} session${sessionsNeeded != 1 ? 's are' : ' is'} left to record.`;
+    if (code == 2) content = 'All chat sessions have been recorded.';
+    setMessage({text: content, color});
+  }, [code, sessionsNeeded]);
 
   useEffect(async () => {
-    if (props.status.code != 2) {
-      const workers = await fetch('./info/workers').then(res => res.json()).then(data => data.workers);
-      const comprandInfo = await fetch('./setup/comprands').then(res => res.json());
-      const accountInfo = comprandInfo.find(e => e.data.accountId == props.aid);
-      if (accountInfo) {
-        setWorkersAvailable({state: true, needsPermissionChange: false, knownComprand: accountInfo.id});
-      } else {
-        const filtered = workers.filter(e => e.busy == false);
-        setWorkersAvailable({state: filtered.length != 0, needsPermissionChange: true, workers: filtered, comprands: comprandInfo});
-      }
-    }
-  }, []);
-  useEffect(() => {
-    const color = ['#b00020', '#ffab00', '#388e3c'][props.status.code];
-    let content = '';
-    const sessionsNeeded = props.status.sessionsNeeded;
-    if (props.status.code == 0) content = `No chats have been recorded yet, and ${sessionsNeeded} session${sessionsNeeded != 1 ? 's still need' : ' still needs'} to be recorded.`;
-    if (props.status.code == 1) content = `Some chats have been recorded, and ${sessionsNeeded} session${sessionsNeeded != 1 ? 's are' : ' is'} left to record.`;
-    if (props.status.code == 2) content = 'All chat sessions have been recorded.';
-    setMessage({text: content, color: color});
-  }, [props.status]);
-
-  const getComprandInfo = (comprand, comprandInfo) => {
-    return comprandInfo.filter(e => e.id == comprand)[0].data;
-  };
-  const doChatUpdate = comprand => {
-    fetch(`./api/chat/updateStudent/?comprand=${comprand}&aid=${props.aid}`);
-    setWorkersAvailable({...workersAvailable, state: false});
-    setUpdating(true);
-    props.update(props.aid);
-  }
+    const deviceList = await fetch('./api/devices/list').then(res => res.json()).then(data => Object.entries(data));
+    const filtered = deviceList.filter(([_, device]) => !device.inactive && (!device.locked || device.info.accountId == aid));
+    setDevices(filtered);
+    setDialogOpen(false);
+  }, [aid]);
 
   //  We put the disabled button within a div because disabled elements don't fire events, making the tooltip not show up
   return (
     <div style={{display: 'grid', placeItems: 'center', flexGrow: '1'}}>
       <Paper variant='outlined' style={{display: 'flex', margin: '10px', padding: '10px 15px', alignItems: 'center'}}>
-        <Typography variant='h5' style={{color: message.color, width: 'fit-content', marginRight: props.status.code != 2 ? '12px' : '0px'}}>{message.text}</Typography>
-        {props.status.code != 2 && (
-          workersAvailable.state ? (
-            <React.Fragment>
-              {!workersAvailable.needsPermissionChange ? (
-                <Button variant='outlined' onClick={() => doChatUpdate(workersAvailable.knownComprand)}>Update</Button>
-              ) : (
-                <React.Fragment>
-                  <Button variant='outlined' onClick={() => setDialogOpen(true)}>Update</Button>
-                  <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
-                    <DialogTitle>Select a Worker</DialogTitle>
-                    <List>
-                      {workersAvailable.workers.map(worker => 
-                        <ListItem button key={worker.id} onClick={() => {
-                          doChatUpdate(worker.id);
-                          setDialogOpen(false);
-                        }}>
-                          <ListItemText>
-                            {getComprandInfo(worker.id, workersAvailable.comprands).emailOnFile}
-                          </ListItemText>
-                        </ListItem>  
-                      )}
-                    </List>
-                  </Dialog>
-                </React.Fragment>
-              )}
-            </React.Fragment>
-          ) : (
-            <Tooltip title={updating ? 'Update is in progress' : 'No workers available to record chats'} placement='top' arrow>
+        <Typography variant='h5' style={{color: message.color, width: 'fit-content', marginRight: code != 2 ? '12px' : '0px'}}>{message.text}</Typography>
+        {code != 2 && (
+          <>
+            <Tooltip title={updating ? 'Update is in progress' : ( devices.length == 0 ? 'No devices available to record chats' : '' )} placement='top' arrow>
               <div>
-                <Button variant='outlined' disabled>
+                <Button variant='outlined' disabled={updating || devices.length == 0} onClick={handleClick}>
                   {updating ? 'Updating...' : 'Update'}
                   {updating && <CircularProgress size={20} style={{margin: '5px', marginLeft: '10px'}} />}
                 </Button>
               </div>
             </Tooltip>
-          )
+            <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
+              <DialogTitle>Select a Worker</DialogTitle>
+              <DialogContent>
+                <List>
+                  {devices.map(([id, device]) => 
+                    <ListItem button key={id} onClick={() => {
+                      update(id);
+                      setDialogOpen(false);
+                    }}>
+                      <ListItemText sx={{ pr: 2 }}>
+                        {device.info.emailOnFile || 'Unknown User'}
+                      </ListItemText>
+                    </ListItem>  
+                  )}
+                </List>
+              </DialogContent>
+            </Dialog>
+          </>
         )}
       </Paper>
     </div>

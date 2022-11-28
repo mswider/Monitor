@@ -11,7 +11,7 @@ import Button from '@mui/material/Button';
 import Chat from './Chat.jsx';
 
 function LiveChat() {
-  let { email } = useParams();
+  let { subAccountId, sessionId } = useParams();
   const [username, setUsername] = useState('Connecting...');
   const [messages, setMessages] = useState([]);
   const [members, setMembers] = useState({});
@@ -22,19 +22,20 @@ function LiveChat() {
   const pusherRef = useRef();
   useEffect(async () => {
     fetch('./info/people').then(res => res.json()).then(setMembers);
-    const comprandResponse = await fetch('./setup/comprands').then(res => res.json()).then(data => data.filter(e => e.data.emailOnFile == email)[0]);
-    if (comprandResponse != null) {
-      const liveSessions = await fetch('./info/classes').then(res => res.json()).then(data => data.filter(e => e.id == comprandResponse.id)[0]).then(person => person.sessions);
-      if (liveSessions.length != 0) {
+    const devices = await fetch('./api/devices/list').then(res => res.json()).then(Object.entries);
+    const searchResult = devices.find(([_, { info }]) => (info.subAccountId == subAccountId));
+    if (searchResult) {
+      const [id, { info }] = searchResult;
+      const session = await fetch('./api/devices/sessions').then(res => res.json()).then(data => data.sessions[sessionId]);
+      if (session?.devices.includes(id)) {
         setStatus('ok');
         const settings = await fetch('./info/pusher').then(res => res.json());
-        pusherRef.current = new Pusher(settings.key, {cluster: 'goguardian', authEndpoint: './pusher/authproxy', auth: {headers: {'Authorization': comprandResponse.id}, params: {version: settings.version, liveStateVersion: settings.ggVersion}}});
-        const classIndex = 0;
-        const channelNameTemp = `presence-student.${comprandResponse.data.accountId}-session.${liveSessions[classIndex].id}`;
-        setPusherInfo({channel: channelNameTemp, studentId: comprandResponse.data.accountId, sessionId: liveSessions[classIndex].id, classroomId: liveSessions[classIndex].classroomId}); //Allows us to send messages outside of this hook
+        pusherRef.current = new Pusher(settings.key, {cluster: 'goguardian', authEndpoint: './pusher/authproxy', auth: {headers: {'Authorization': id}, params: {version: settings.version, liveStateVersion: settings.ggVersion}}});
+        const channelNameTemp = `presence-student.${info.accountId}-session.${sessionId}`;
+        setPusherInfo({channel: channelNameTemp, studentId: info.accountId, sessionId: session.info.id, classroomId: session.info.classroomId}); //Allows us to send messages outside of this hook
         const channel = pusherRef.current.subscribe(channelNameTemp);
         channel.bind('pusher:subscription_succeeded', () => {
-          setUsername(`${channel.members.me.info.name} | ${liveSessions[classIndex].classroomName}`);
+          setUsername(`${channel.members.me.info.name} | ${session.info.classroomName}`);
         });
         channel.bind('client-chat-message', (data) => {
           // For some reason, the first message recieved will always erase the saved messages.
@@ -45,8 +46,7 @@ function LiveChat() {
           setMessages(tempMessages);
           setChatKey(uuidv1());
         });
-        const chatHistory = await fetch(`./pusher/history/${liveSessions[0].id}`, {headers: {'Auth': comprandResponse.id}}).then(res => res.json()).then(data => data.messages);
-        setMessages(chatHistory);
+        await fetch(`./pusher/history/${sessionId}`, {headers: {'Auth': id}}).then(res => res.json()).then(data => setMessages(data.messages));
       } else {
         setStatus('no_classes');
       }
@@ -94,7 +94,7 @@ function LiveChat() {
         <Typography variant='h3' style={{color: '#757575', margin: 'auto', fontStyle: 'italic'}}>User Isn't Being Monitored</Typography>
       )}
       {status == 'no_classes' && (
-        <Typography variant='h3' style={{color: '#757575', margin: 'auto', fontStyle: 'italic'}}>User Isn't In a Class</Typography>
+        <Typography variant='h3' style={{color: '#757575', margin: 'auto', fontStyle: 'italic'}}>User Isn't In This Class</Typography>
       )}
       {status == 'ok' && (
         <React.Fragment>

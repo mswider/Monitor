@@ -16,7 +16,7 @@ function SessionHistory(props) {
   return (
     <React.Fragment>
       {props.history.length == 0 ? (
-        <Typography variant='h6' style={{color: '#757575', margin: '1em 0', fontStyle: 'italic'}}>No Past Sessions</Typography>
+        <Typography variant='h6' style={{color: '#757575', margin: '1em 0', fontStyle: 'italic', textAlign: 'center'}}>No Past Sessions</Typography>
       ) : (
         <Table style={{width: '100%'}}>
           <TableHead>

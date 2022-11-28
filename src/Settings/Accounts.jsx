@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Account from './Account';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
@@ -15,80 +15,98 @@ import TextField from '@mui/material/TextField';
 import Skeleton from '@mui/material/Skeleton';
 import Fab from '@mui/material/Fab';
 import CircularProgress from '@mui/material/CircularProgress';
+import Tooltip from '@mui/material/Tooltip';
 import { useTheme } from '@mui/material/styles';
-import { copy, post } from '../utils';
+import { post } from '../utils';
+import { NIL } from 'uuid';
 
 function Accounts({ refreshMode }) {
   const states = {
-    ADD: 1,
-    LOAD: 2,
-    FAIL: 3,
-    SUCCESS: 4
+    MODE: 1,
+    CREATE: 2,
+    ADD: 3,
+    LOAD: 4,
+    LOAD_CREATE: 5,
+    FAIL: 6,
+    SUCCESS: 7
   };
-  const [accounts, setAccounts] = useState({});   // [id]: {aid?, sid, worker, orgName, name?, email?}
+  const [accounts, setAccounts] = useState({});   // [id]: {aid?, sid, locked, inactive, orgName, name?, email?}
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogText, setDialogText] = useState('');
+  const [license, setLicense] = useState('');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [error, setError] = useState({license: false, name: false, email: false});
   const [uuidValid, setUuidValid] = useState(true);
-  const [dialogState, setDialogState] = useState(states.ADD);
+  const [dialogState, setDialogState] = useState(states.MODE);
   const theme = useTheme();
+  const polling = useRef();
+
+  const validators = {
+    license: text => /^[a-p]{32}$/.test(text),
+    name: text => text.length > 0,
+    email: text => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text)
+  };
 
   const refreshAccounts = async () => {
-    setAccounts(await fetch('./setup/comprands').then(res => res.json()).then(async data => await Promise.all(data.map(async device => {
-      const userInfo = device.data.accountId && await fetch(`./info/people/${device.data.accountId}`).then(res => res.ok && res.json());
-      return [device.id, {
-        aid: device.data.accountId,
-        sid: device.data.subAccountId,
-        worker: device.mode == 'worker',
-        orgName: window.atob(device.data.orgName),
+    setAccounts(await fetch('./api/devices/list').then(res => res.json()).then(async data => Promise.all(Object.entries(data).map(async ([id, device]) => {
+      const userInfo = device.info.accountId && await fetch(`./info/people/${device.info.accountId}`).then(res => res.ok && res.json());
+      return [id, {
+        aid: device.info.accountId,
+        sid: device.info.subAccountId,
+        locked: device.locked,
+        inactive: device.inactive,
+        orgName: window.atob(device.info.orgName),
         name: userInfo?.name,
-        email: device.data.emailOnFile
+        email: device.info.emailOnFile
       }];
     }))).then(Object.fromEntries));
     setLoading(false);
   };
   const assignAccount = async (deviceID, name, email) => {
-    const { interval, workers } = await fetch('./info/workers').then(res => res.json());
-    let data = Object.fromEntries(workers.map(
-      ({id, data: { name, email }}) => ([id, { name: name || '', email: email || '' }])
-    ));
-    data[deviceID] = { name, email };
-    const body = { interval, data };
-    await post('./setup/monitoring', body);
-    await refreshAccounts();
+    return await post('./api/devices/assign', { name, email }, { device: deviceID }).then(res => res.json()).then(data => data.taskID);
   };
   const removeAccount = async deviceID => {
     setLoading(true);
-    let newAccounts = copy(accounts);
-    delete newAccounts[deviceID];
-    const data = Object.entries(newAccounts).map(([id, account]) => ({id, mode: account.worker ? 'worker' : 'monitor'}));
-    await post('./setup/comprands', data);
+    await fetch('./api/devices/remove', { method: 'POST', headers: { device: deviceID } });
     await refreshAccounts();
   };
-  const changeAccountMode = async (deviceID, isWorker) => {
+  const changeAccountMode = async (deviceID, locked) => {
     setLoading(true);
-    let newAccounts = copy(accounts);
-    newAccounts[deviceID].worker = isWorker;
-    const data = Object.entries(newAccounts).map(([id, account]) => ({id, mode: account.worker ? 'worker' : 'monitor'}));
-    await post('./setup/comprands', data);
+    await post('./api/devices/locked', { locked }, { device: deviceID });
     await refreshAccounts();
   };
   const addAccount = async deviceID => {
     setDialogState(states.LOAD);
-    const data = Object.entries(accounts).map(([id, account]) => ({id, mode: account.worker ? 'worker' : 'monitor'}));
-    data.push({ id: deviceID, mode: 'monitor' });
-    const { valid } = await post('./setup/comprands', data).then(res => res.json());
-    if (data.length == 1 && valid) await refreshMode();
-    setDialogState(valid ? states.SUCCESS : states.FAIL);
+    const res = await fetch('./api/devices/add', { method: 'POST', headers: { device: deviceID } });
+    if (Object.keys(accounts).length == 0 && res.ok) await refreshMode();  // Refresh after we add the first account
+    setDialogState(res.ok ? states.SUCCESS : states.FAIL);
+  };
+  const createAccount = async (licenseKey, name, email) => {
+    setDialogState(states.LOAD_CREATE);
+    const taskID = await post('./api/devices/new', { name, email, orgID: licenseKey }).then(res => res.json()).then(data => data.taskID);
+    polling.current = setInterval(async () => {
+      const { completed, success } = await fetch(`./api/tasks/${taskID}`).then(res => res.json());
+      if (completed) {
+        setDialogState(success ? states.SUCCESS : states.FAIL );
+        clearInterval(polling.current);
+        await refreshAccounts();
+      }
+    }, 5000);
   };
 
-  const validateID = () =>  setUuidValid(/^[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$/i.test(dialogText));
+  const validateID = () => setUuidValid(/^[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$/i.test(dialogText));
+  const validate = () => {setError({license: !validators.license(license), name: !validators.name(name), email: !validators.email(email)})};
   const closeDialog = () => {
-    if (dialogState != states.LOAD) {
+    if (dialogState != states.LOAD || dialogState != states.LOAD_CREATE) {
       setDialogOpen(false);
       setTimeout(() => {
         setDialogText('');
-        setDialogState(states.ADD);
+        setLicense('');
+        setName('');
+        setEmail('');
+        setDialogState(states.MODE);
         if (dialogState == states.SUCCESS) {
           setLoading(true);
           refreshAccounts();
@@ -99,6 +117,8 @@ function Accounts({ refreshMode }) {
 
   useEffect(refreshAccounts, []);
   useEffect(validateID, [dialogText]);
+  useEffect(validate, [license, name, email]);
+  useEffect(() => clearInterval(polling.current), []);
 
   return (
     <Box sx={{p: 2}}>
@@ -109,8 +129,9 @@ function Accounts({ refreshMode }) {
           <Typography color="text.secondary" gutterBottom>By tracking an account, you can see what classes they joined, when they joined them, and the people in them.</Typography>
           <Typography color="text.secondary">Removing an account doesn't delete it from GoGuardian</Typography>
           <br />
-          <Typography variant="h6" gutterBottom>Worker Mode</Typography>
-          <Typography color="text.secondary">Workers aren't tracked, but they let you save chats from other accounts. Their account details <i>will</i> be changed during use.</Typography>
+          <Typography variant="h6" gutterBottom>Locked Mode</Typography>
+          <Typography color="text.secondary">Devices are locked by default, which is to prevent you assigning them to different people by accident.</Typography>
+          <Typography color="text.secondary">If you want to assign the account or update somebody else's chats, then you can unlock it.</Typography>
         </Paper>
         <Container maxWidth="sm" sx={{ p: 4, flex: 1, display: 'flex', flexDirection: 'column', rowGap: theme => theme.spacing(4) }}>
           {loading ? (
@@ -128,10 +149,12 @@ function Accounts({ refreshMode }) {
                 school={account.orgName}
                 email={account.email}
                 name={account.name}
-                worker={account.worker}
+                locked={account.locked}
+                inactive={account.inactive}
                 assign={assignAccount}
                 remove={removeAccount}
                 changeMode={changeAccountMode}
+                refreshAccounts={refreshAccounts}
               />
             )) : (
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -154,48 +177,122 @@ function Accounts({ refreshMode }) {
           </Fab>
         )}
         <Dialog open={dialogOpen} onClose={closeDialog}>
-          {dialogState <= states.LOAD ? (
+          <DialogTitle>Add Account</DialogTitle>
+          {dialogState <= states.LOAD_CREATE ? (
             <>
-              <DialogTitle>Add Account</DialogTitle>
-              <DialogContent>
-                <Box sx={{mb: 1, mr: 6}}>
-                  <DialogContentText>Attach an account to Monitor</DialogContentText>
-                  <DialogContentText>Add the device ID below, and we'll track it</DialogContentText>
-                </Box>
-                <TextField
-                  autoFocus
-                  error={(!uuidValid && dialogText.length > 0) || Object.keys(accounts).includes(dialogText)}
-                  helperText={!uuidValid && dialogText.length > 0 ? 'Invalid device ID' : Object.keys(accounts).includes(dialogText) && 'Account is already tracked'}
-                  margin="dense"
-                  label="Device ID"
-                  fullWidth
-                  value={dialogText}
-                  placeholder="00000000-0000-0000-0000-000000000000"
-                  onChange={e => setDialogText(e.target.value)}
-                />
-              </DialogContent>
-              <DialogActions>
-                <Button variant="outlined" onClick={closeDialog} disabled={dialogState == states.LOAD}>Cancel</Button>
-                <Button
-                  variant="contained"
-                  disabled={!uuidValid || Object.keys(accounts).includes(dialogText) || dialogState == states.LOAD}
-                  onClick={() => addAccount(dialogText)}
-                >
-                  {dialogState == states.LOAD ? 'Adding...' : 'Add'}
-                  {dialogState == states.LOAD && <CircularProgress size={20} sx={{ ml: 1.5 }} />}
-                </Button>
-              </DialogActions>
+              {dialogState == states.MODE ? (
+                <DialogContent>
+                  <DialogContentText>A device ID looks like this:</DialogContentText>
+                  <Box sx={{ borderRadius: 1, bgcolor: 'codeHighlight', width: 'fit-content', p: theme => `${theme.spacing(0.5)} ${theme.spacing(1)}`, mb: 1 }}>
+                    <DialogContentText>{NIL}</DialogContentText>
+                  </Box>
+                  <DialogContentText sx={{ mt: '0.35em' }}>If you have one, we can track it immediately without needing setup</DialogContentText>
+                  <DialogContentText gutterBottom>If not, we can create a virtual device and set it up automatically</DialogContentText>
+                  <DialogContentText>Having a real device ID allows us to do more, so they are preferred</DialogContentText>
+                  <Button variant="contained" fullWidth endIcon={<Icon>arrow_forward</Icon>} sx={{ mt: 3, mb: 1 }} onClick={() => setDialogState(states.ADD)}>Add Device by ID</Button>
+                  <Button variant="outlined" fullWidth endIcon={<Icon>arrow_forward</Icon>} onClick={() => setDialogState(states.CREATE)}>Create Virtual Device</Button>
+                </DialogContent>
+              ) : (
+                dialogState == states.CREATE || dialogState == states.LOAD_CREATE ? (
+                  <>
+                    <DialogContent>
+                      <Box sx={{ mb: 1 }}>
+                        <DialogContentText gutterBottom>Create a new virtual device through GoGuardian</DialogContentText>
+                        <DialogContentText>Make sure the student's name is the same as their Google account</DialogContentText>
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <TextField
+                          autoFocus
+                          error={error.license && license.length > 0}
+                          helperText={error.license && license.length > 0 && 'Invalid license'}
+                          margin="dense"
+                          label="GoGuardian License ID"
+                          fullWidth
+                          value={license}
+                          placeholder="bofhfaclfglmfciiogikgndbdejhjjcc"
+                          onChange={e => setLicense(e.target.value)}
+                        />
+                        <Tooltip title={`Each school in GoGuardian has its own license key. Yours is the ID of the "GoGuardian License" Chrome extension`} placement='top' arrow>
+                          <Icon sx={{ ml: 2, mr: 1, color: 'info.dark' }}>help_outline</Icon>
+                        </Tooltip>
+                      </Box>
+                      <TextField
+                        error={error.name && name.length > 0}
+                        helperText={error.name && name.length > 0 && 'Invalid name'}
+                        margin="dense"
+                        label="Name"
+                        fullWidth
+                        value={name}
+                        onChange={e => setName(e.target.value)}
+                      />
+                      <TextField
+                        error={error.email && email.length > 0}
+                        helperText={error.email && email.length > 0 && 'Invalid email'}
+                        margin="dense"
+                        label="Email"
+                        fullWidth
+                        type="email"
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
+                      />
+                    </DialogContent>
+                    <DialogActions>
+                      <Button variant="outlined" onClick={closeDialog} disabled={dialogState == states.LOAD_CREATE}>Cancel</Button>
+                      <Button
+                        variant="contained"
+                        disabled={error.license || error.name || error.email || dialogState == states.LOAD_CREATE}
+                        onClick={() => createAccount(license, name, email)}
+                      >
+                        {dialogState == states.LOAD_CREATE ? 'Creating...' : 'Create'}
+                        {dialogState == states.LOAD_CREATE && <CircularProgress size={20} sx={{ ml: 1.5 }} />}
+                      </Button>
+                    </DialogActions>
+                  </>
+                ) : (
+                  <>
+                    <DialogContent>
+                      <Box sx={{ mb: 1, mr: 6 }}>
+                        <DialogContentText>Attach an account to Monitor</DialogContentText>
+                        <DialogContentText>Add the device ID below, and we'll track it</DialogContentText>
+                      </Box>
+                      <TextField
+                        autoFocus
+                        error={(!uuidValid && dialogText.length > 0) || Object.keys(accounts).includes(dialogText)}
+                        helperText={!uuidValid && dialogText.length > 0 ? 'Invalid device ID' : Object.keys(accounts).includes(dialogText) && 'Account is already tracked'}
+                        margin="dense"
+                        label="Device ID"
+                        fullWidth
+                        value={dialogText}
+                        placeholder={NIL}
+                        onChange={e => setDialogText(e.target.value)}
+                      />
+                    </DialogContent>
+                    <DialogActions>
+                      <Button variant="outlined" onClick={closeDialog} disabled={dialogState == states.LOAD}>Cancel</Button>
+                      <Button
+                        variant="contained"
+                        disabled={!uuidValid || Object.keys(accounts).includes(dialogText) || dialogState == states.LOAD}
+                        onClick={() => addAccount(dialogText)}
+                      >
+                        {dialogState == states.LOAD ? 'Adding...' : 'Add'}
+                        {dialogState == states.LOAD && <CircularProgress size={20} sx={{ ml: 1.5 }} />}
+                      </Button>
+                    </DialogActions>
+                  </>
+                )
+              )}
+              
             </>
           ) : (
             <>
-              <DialogContent sx={{ pb: 0, pt: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+              <DialogContent sx={{ pb: 0 }}>
+                <Box sx={{ display: 'flex', mt: 3 }}>
                   <Icon fontSize="large" sx={{ color: dialogState == states.SUCCESS ? 'success.light' : 'error.light' }}>
                     {dialogState == states.SUCCESS ? 'check_circle' : 'error'}
                   </Icon>
+                  <DialogTitle sx={{ pt: 0.5, pb: 4 }}>{dialogState == states.SUCCESS ? 'Account added successfully' : 'Failed to add account'}</DialogTitle>
                 </Box>
               </DialogContent>
-              <DialogTitle sx={{ pt: 0.5, pb: 4 }}>{dialogState == states.SUCCESS ? 'Account added successfully' : 'Failed to add account'}</DialogTitle>
               <DialogActions>
                 <Button variant="contained" onClick={closeDialog}>Ok</Button>
               </DialogActions>

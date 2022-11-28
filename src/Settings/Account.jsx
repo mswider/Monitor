@@ -21,21 +21,23 @@ import DialogContentText from '@mui/material/DialogContentText';
 import DialogActions from '@mui/material/DialogActions';
 import TextField from '@mui/material/TextField';
 import Tooltip from '@mui/material/Tooltip';
+import LinearProgress from '@mui/material/LinearProgress';
 import { alpha } from "@mui/material";
 import { useTheme } from '@mui/material/styles';
 
-function Account({ deviceID = '-', aid = '-', sid = '-', school = 'Unknown School', email = '-', name = 'Unknown User', worker, assign, remove, changeMode }) {
+function Account({ deviceID = '-', aid = '-', sid = '-', school = 'Unknown School', email = '-', name = 'Unknown User', locked, inactive, assign, remove, changeMode, refreshAccounts }) {
   const [expanded, setExpanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogName, setDialogName] = useState(name);
   const [dialogEmail, setDialogEmail] = useState(email);
-  const [dialogInfo, setDialogInfo] = useState(false);
+  const [assignmentInfo, setAssignmentInfo] = useState({ active: false, status: 'load' });
   const [confirmModeSwitch, setConfirmModeSwitch] = useState(false);
   const [error, setError] = useState({name: false, email: false});
   const [confirmOpen, setConfirmOpen] = useState(false);
   const anchor = useRef(null);
   const theme = useTheme();
+  const polling = useRef();
   
   const validators = {
     name: text => text.length > 0,
@@ -44,11 +46,24 @@ function Account({ deviceID = '-', aid = '-', sid = '-', school = 'Unknown Schoo
 
   const closeConfirm = () => {setConfirmOpen(false); setMenuOpen(false)};
   const refreshForm = () => {setDialogName(name); setDialogEmail(email)};
-  const closeDialog = () => {setDialogOpen(false); setMenuOpen(false); setTimeout(() => {setDialogInfo(false); refreshForm()}, theme.transitions.duration.leavingScreen)};
-  const validate = () => {setError({name: !validators.name(dialogName), email: !validators.email(dialogEmail)})}
+  const closeDialog = () => {setDialogOpen(false); setMenuOpen(false); setTimeout(() => {setAssignmentInfo({ active: false, status: 'load' }); clearInterval(polling.current); refreshForm()}, theme.transitions.duration.leavingScreen)};
+  const validate = () => {setError({name: !validators.name(dialogName), email: !validators.email(dialogEmail)})};
+  const assignWrapper = async (deviceID, name, email) => {
+    setAssignmentInfo({ active: true, status: 'load' });
+    const taskID = await assign(deviceID, name, email);
+    polling.current = setInterval(async () => {
+      const { completed, success } = await fetch(`./api/tasks/${taskID}`).then(res => res.json());
+      if (completed) {
+        setAssignmentInfo({ active: true, status: success ? 'success' : 'failure' });
+        clearInterval(polling.current);
+        await refreshAccounts();
+      }
+    }, 5000);
+  };
 
   useEffect(refreshForm, [name, email]);
   useEffect(validate, [dialogName, dialogEmail]);
+  useEffect(() => () => clearInterval(polling.current), []);
 
   return (
     <Card elevation="3" sx={{ borderRadius: 3 }}>
@@ -81,15 +96,15 @@ function Account({ deviceID = '-', aid = '-', sid = '-', school = 'Unknown Schoo
             >
               <MenuList disablePadding>
                 {aid != '-' && (
-                  <Link to={`/studentInfo/${aid}`} style={{ color: 'unset', textDecoration: 'none' }}>
+                  <Link to={`/student/${aid}`} style={{ color: 'unset', textDecoration: 'none' }}>
                     <MenuItem>
                       <ListItemIcon><Icon>person</Icon></ListItemIcon>
                       Profile
                     </MenuItem>
                   </Link>
                 )}
-                {worker && deviceID != '-' && (
-                  <MenuItem onClick={() => setDialogOpen(true)}>
+                {!locked && deviceID != '-' && (
+                  <MenuItem onClick={() => setDialogOpen(true)} disabled={inactive}>
                     <ListItemIcon><Icon>edit</Icon></ListItemIcon>
                     Edit
                   </MenuItem>
@@ -110,30 +125,45 @@ function Account({ deviceID = '-', aid = '-', sid = '-', school = 'Unknown Schoo
             <Dialog open={confirmModeSwitch} onClose={() => setConfirmModeSwitch(false)}>
               <DialogTitle>Change account mode?</DialogTitle>
               <DialogContent>
-                <DialogContentText>This account will become a <Box sx={{ fontWeight: 'fontWeightBold' }} component="span">{worker ? 'monitor' : 'worker'}</Box></DialogContentText>
+                <DialogContentText>This will <Box sx={{ fontWeight: 'fontWeightBold' }} component="span">{locked ? 'unlock' : 'lock'}</Box> the device</DialogContentText>
               </DialogContent>
               <DialogActions>
                 <Button onClick={() => setConfirmModeSwitch(false)} variant="outlined">Cancel</Button>
-                <Button variant="contained" onClick={() => {setConfirmModeSwitch(false); changeMode(deviceID, !worker)}}>Ok</Button>
+                <Button variant="contained" onClick={() => {setConfirmModeSwitch(false); changeMode(deviceID, !locked)}}>Ok</Button>
               </DialogActions>
             </Dialog>
-            {worker && (
+            {!locked && (
               <Dialog open={dialogOpen} onClose={closeDialog}>
-                {dialogInfo ? (
-                  <>
-                    <DialogTitle>Edit Account</DialogTitle>
-                    <DialogContent>
-                      <DialogContentText>A request has been made to reassign this account</DialogContentText>
-                      <DialogContentText>GoGuardian's servers tend to be slow, so this could take several minutes</DialogContentText>
-                      <DialogContentText>Check the Monitor server logs for updates</DialogContentText>
-                    </DialogContent>
-                    <DialogActions>
-                      <Button variant="contained" onClick={closeDialog}>Ok</Button>
-                    </DialogActions>
-                  </>
+                <DialogTitle>Edit Account</DialogTitle>
+                {assignmentInfo.active ? (
+                  assignmentInfo.status == 'load' ? (
+                    <>
+                      <DialogContent>
+                        <DialogContentText>Assigning account...</DialogContentText>
+                        <DialogContentText>GoGuardian's servers tend to be slow, so this could take several minutes</DialogContentText>
+                        <LinearProgress sx={{ mt: 2 }} />
+                      </DialogContent>
+                      <DialogActions>
+                        <Button variant="outlined" onClick={closeDialog}>Close</Button>
+                      </DialogActions>
+                    </>
+                  ) : (
+                    <>
+                      <DialogContent sx={{ pb: 0, pt: 2 }}>
+                        <Box sx={{ display: 'flex', mt: 3 }}>
+                          <Icon fontSize="large" sx={{ color: assignmentInfo.status == 'success' ? 'success.light' : 'error.light' }}>
+                            {assignmentInfo.status == 'success' ? 'check_circle' : 'error'}
+                          </Icon>
+                          <DialogTitle sx={{ pt: 0.5, pb: 4 }}>{`Account assignment ${assignmentInfo.status == 'success' ? 'succeeded' : 'failed'}`}</DialogTitle>
+                        </Box>
+                      </DialogContent>
+                      <DialogActions>
+                        <Button variant="contained" onClick={closeDialog}>Ok</Button>
+                      </DialogActions>
+                    </>
+                  )
                 ) : (
                   <>
-                    <DialogTitle>Edit Account</DialogTitle>
                     <DialogContent>
                       <Box sx={{mb: 1}}>
                         <DialogContentText>Assign another user to this device</DialogContentText>
@@ -165,7 +195,7 @@ function Account({ deviceID = '-', aid = '-', sid = '-', school = 'Unknown Schoo
                       <Button
                         variant="contained"
                         disabled={(dialogName == name && dialogEmail == email) || error.name || error.email}
-                        onClick={() => {assign(deviceID, dialogName, dialogEmail).then(() => setDialogInfo(true))}}
+                        onClick={() => {assignWrapper(deviceID, dialogName, dialogEmail)}}
                       >
                         Update
                       </Button>
@@ -179,13 +209,13 @@ function Account({ deviceID = '-', aid = '-', sid = '-', school = 'Unknown Schoo
         <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between' }}>
           <ToggleButtonGroup
               color="primary"
-              value={worker ? 'worker' : 'monitor'}
+              value={locked ? 'locked' : 'unlocked'}
               onChange={(_, e) => e && setConfirmModeSwitch(true)}
               exclusive
               size="small"
           >
-            <ToggleButton value="monitor">Monitor</ToggleButton>
-            <ToggleButton value="worker">Worker</ToggleButton>
+            <ToggleButton value="locked"><Icon>lock</Icon></ToggleButton>
+            <ToggleButton value="unlocked"><Icon>lock_open</Icon></ToggleButton>
           </ToggleButtonGroup>
           <IconButton 
             onClick={() => setExpanded(!expanded)} 

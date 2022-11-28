@@ -17,7 +17,7 @@ function Config() {
   const max = steps[steps.length - 1].value + steps[0].value;
   
   const refresh = async () => {
-    const interval = await fetch('./info/workers').then(res => res.json()).then(({interval}) => Math.round(interval / 1000));
+    const interval = await fetch('./api/devices/interval').then(res => res.json()).then(data => data.interval);
     initialValues.current.interval = interval;
     setSliderValue(interval);
     setLoading(false);
@@ -25,12 +25,7 @@ function Config() {
 
   const updateInterval = async () => {
     setLoading(true);
-    let { workers } = await fetch('./info/workers').then(res => res.json());
-    let data = Object.fromEntries(workers.map(
-      ({id, data: { name, email }}) => ([id, { name: name || '', email: email || '' }])
-    ));
-    const interval = sliderValue * 1000;
-    await post('./setup/monitoring', { interval, data });
+    await post('./api/devices/interval', { interval: sliderValue });
     await refresh();
   };
 
