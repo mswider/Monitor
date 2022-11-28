@@ -2,7 +2,9 @@
 
 **Monitor gives transparency to software that tracks students.**
 
-![dashboard](https://user-images.githubusercontent.com/37093293/119205564-27a8d400-ba5e-11eb-9a1d-9b9ac6a5fd86.png)
+![dashboard](https://user-images.githubusercontent.com/37093293/204198473-dd188c48-c5d8-4d5a-a2b2-760679065b6d.png#gh-light-mode-only)
+![dashboard](https://user-images.githubusercontent.com/37093293/204198759-bcd6765b-d282-4155-8e07-6b0e1189f6d0.png#gh-dark-mode-only)
+
 
 ## Features
 * **Multi-User Monitoring:** Track activity of several students at once
