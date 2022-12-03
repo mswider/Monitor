@@ -107,23 +107,24 @@ function StudentInfo() {
     clearInterval(assignPolling.current);
   }, []); //Clear update intervals on unmount
   return (
-    <Container style={{marginTop: '64px', paddingTop: '24px'}}>
+    <Container sx={{ mt: 8, paddingTop: 3 }}>
       {studentInfo ? (
         <React.Fragment>
-          <Box sx={{ mb: 3 }}>
+          <Box sx={{ mb: 2 }}>
             <Typography variant='h2'>{studentInfo.name}</Typography>
             <Typography variant='h5' sx={{ color: 'text.secondary' }} gutterBottom>{studentInfo.email}</Typography>
             <Typography variant='h6' gutterBottom>
               {studentClassrooms.current.length} Class{studentClassrooms.current.length != 1 ? 'es' : ''}
               {Object.keys(chats).length != 0 && ` • ${Object.keys(chats).length} Recorded Conversation${Object.keys(chats).length != 1 ? 's' : ''}`}
             </Typography>
+            <Divider />
             {!devices.find(([_, { info }]) => info.accountId == studentInfo.aid) && (
               <>
                 <Tooltip title={assigning ? 'Update is in progress' : ( filteredDevices.length == 0 ? 'No devices available to be assigned' : '' )} placement='top' arrow>
-                  <Box sx={{ maxWidth: 'fit-content' }}>
+                  <Box sx={{ maxWidth: 'fit-content', mt: 2 }}>
                     <Button variant="outlined" size="small" disabled={assigning || filteredDevices.length == 0} onClick={() => setDialogOpen(true)}>
                       {assigning ? 'Updating...' : 'Monitor'}
-                      {assigning && <CircularProgress size={16} style={{margin: '5px', marginLeft: '10px'}} />}
+                      {assigning && <CircularProgress size={16} sx={{ m: '5px', ml: '10px' }} />}
                     </Button>
                   </Box>
                 </Tooltip>
@@ -131,29 +132,29 @@ function StudentInfo() {
               </>
             )}
           </Box>
-          <Typography variant='h4' style={{marginBottom: '5px'}}>Classes: <span style={{color: '#757575'}}>{studentClassrooms.current.length}</span></Typography>
-          <Divider />
-          {ClassroomViewer}
-          <div style={{display: 'flex', alignItems: 'flex-end'}}>
-            <Typography variant='h4' style={{marginBottom: '5px'}}>Chats: <span style={{color: '#757575'}}>{Object.keys(chats).length}</span></Typography>
+          <Typography variant='h4' sx={{ mb: '5px' }}>Classes:</Typography>
+          <Box sx={{ p: 1 }}>
+            {ClassroomViewer}
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'flex-end' }}>
+            <Typography variant='h4' sx={{ mb: '5px' }}>Chats:</Typography>
             <ChatStatus code={chatStatus.code} sessionsNeeded={chatStatus.sessionsNeeded} updating={updating} aid={studentInfo.aid} update={updateChats} allDevices={devices} />
-          </div>
-          <Divider />
-          <div style={{padding: '12px', display: 'flex', flexWrap: 'wrap'}}>
+          </Box>
+          <Box sx={{ p: 2, display: 'flex', flexWrap: 'wrap' }}>
             {Object.keys(chats).reverse().map(e =>
               <Link to={`/chat/${e}/${studentInfo.aid}`} key={e}>
-                <Paper variant='outlined' style={{display: 'inline-block', padding: '8px', paddingTop: '4px', margin: '4px'}}>
-                  <Typography variant='h6' style={{textAlign: 'center'}}>{classHistory.current.find(j => j.id == e).name}</Typography>
-                  <Divider style={{marginBottom: '5px'}} />
+                <Paper variant='outlined' sx={{ display: 'inline-block', p: 1, pt: 0.5, m: 0.5 }}>
+                  <Typography variant='h6' sx={{ textAlign: 'center' }}>{classHistory.current.find(j => j.id == e).name}</Typography>
+                  <Divider sx={{ mb: '5px' }} />
                   <Typography variant='h6'>Date: <span style={{fontWeight: '400'}}>{classHistory.current.find(j => j.id == e).date}</span></Typography>
                   <Typography variant='h6'>Messages: <span style={{fontWeight: '400'}}>{chats[e].length}</span></Typography>
                 </Paper>
               </Link>
             )}
-          </div>
+          </Box>
         </React.Fragment>
       ) : (
-        <Typography variant='h3' style={{position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: '#757575', fontStyle: 'italic'}}>Student Doesn't Exist</Typography>
+        <Typography variant='h3' sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: 'grey.600', fontStyle: 'italic' }}>Student Doesn't Exist</Typography>
       )}
     </Container>
   );
@@ -194,16 +195,16 @@ function ChatStatus({ code, sessionsNeeded, updating, aid, update, allDevices })
 
   //  We put the disabled button within a div because disabled elements don't fire events, making the tooltip not show up
   return (
-    <div style={{display: 'grid', placeItems: 'center', flexGrow: '1'}}>
-      <Paper variant='outlined' style={{display: 'flex', margin: '10px', padding: '10px 15px', alignItems: 'center'}}>
-        <Typography variant='h5' style={{color: message.color, width: 'fit-content', marginRight: code != 2 ? '12px' : '0px'}}>{message.text}</Typography>
+    <Box sx={{ display: 'grid', placeItems: 'center', flexGrow: '1' }}>
+      <Paper variant='outlined' sx={{ display: 'flex', m: '10px', p: '10px 15px', alignItems: 'center' }}>
+        <Typography variant='h5' sx={{ color: message.color, width: 'fit-content', mr: code != 2 && '12px' }}>{message.text}</Typography>
         {code != 2 && (
           <>
             <Tooltip title={updating ? 'Update is in progress' : ( devices.length == 0 ? 'No devices available to record chats' : '' )} placement='top' arrow>
               <div>
                 <Button variant='outlined' disabled={updating || devices.length == 0} onClick={handleClick}>
                   {updating ? 'Updating...' : 'Update'}
-                  {updating && <CircularProgress size={20} style={{margin: '5px', marginLeft: '10px'}} />}
+                  {updating && <CircularProgress size={20} sx={{ m: '5px', ml: '10px' }} />}
                 </Button>
               </div>
             </Tooltip>
@@ -211,7 +212,7 @@ function ChatStatus({ code, sessionsNeeded, updating, aid, update, allDevices })
           </>
         )}
       </Paper>
-    </div>
+    </Box>
   );
 }
 
