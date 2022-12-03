@@ -7,13 +7,9 @@ import Divider from '@mui/material/Divider';
 import Paper from '@mui/material/Paper';
 import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
-import Dialog from '@mui/material/Dialog';
-import DialogTitle from '@mui/material/DialogTitle';
-import DialogContent from '@mui/material/DialogContent';
-import List from '@mui/material/List';
-import ListItem from '@mui/material/ListItem';
-import ListItemText from '@mui/material/ListItemText';
 import CircularProgress from '@mui/material/CircularProgress';
+import Box from '@mui/material/Box';
+import SelectDevice from './components/SelectDevice';
 import { post } from './utils';
 
 function StudentInfo() {
@@ -26,7 +22,11 @@ function StudentInfo() {
   const [chatStatus, setChatStatus] = useState({ code: 1, sessionsNeeded: 1 });
   const [chats, setChats] = useState({});
   const [updating, setUpdating] = useState(false);
+  const [devices, setDevices] = useState([]);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [assigning, setAssigning] = useState(false);
   const polling = useRef();
+  const assignPolling = useRef();
 
   const loadChatData = async aid => {
     await fetch(`./api/chat/studentStatus/${aid}`).then(res => res.json()).then(data => setChatStatus(data));
@@ -48,10 +48,27 @@ function StudentInfo() {
       }
     }, 2500);
   };
+  const assign = async deviceID => {
+    setAssigning(true);
+    const { taskID } = await post('./api/devices/assign', { name: studentInfo.name, email: studentInfo.email }, { device: deviceID }).then(res => res.json());
+    assignPolling.current = setInterval(async () => {
+      const { completed } = await fetch(`./api/tasks/${taskID}`).then(res => res.json());
+      if (completed) {
+        clearInterval(assignPolling.current);
+        setAssigning(false);
+        await fetch('./api/devices/list').then(res => res.json()).then(Object.entries).then(setDevices);
+      }
+    }, 2500);
+  };
 
   const ClassroomViewer = useMemo(() => //Prevent classrooms from changing color while we're updating chats bc it looks weird
     <Classrooms classrooms={studentClassrooms.current} history={classHistory.current} forStudentPage color='RANDOM' />, 
     [studentClassrooms.current, classHistory.current]
+  );
+
+  const filteredDevices = useMemo(() =>
+    devices.filter(([_, device]) => !device.inactive && !device.locked && studentInfo && device.info.accountId != studentInfo.aid),
+    [studentInfo, devices]
   );
 
   useEffect(async () => {
@@ -62,7 +79,10 @@ function StudentInfo() {
     }
     setStudentInfo(null);
     setUpdating(false);
+    setAssigning(false);
+    setDialogOpen(false);
     clearInterval(polling.current);
+    clearInterval(assignPolling.current);
 
     const accountAID = Number(studentAID);  //This is a string but we need it as a number
     if (!isNaN(accountAID)) {  //Needed to prevent errors if someone makes the param an actual string Ex: "hello_world"
@@ -77,23 +97,46 @@ function StudentInfo() {
           sessions: classHistory.current.filter(e => e.classroomId == classroom).length
         }));
         await loadChatData(accountAID);
-        await fetch(`./info/people/${accountAID}`).then(res => res.json()).then(data => setStudentInfo(data));
+        await fetch('./api/devices/list').then(res => res.json()).then(Object.entries).then(setDevices);
+        await fetch(`./info/people/${accountAID}`).then(res => res.json()).then(setStudentInfo);
       }
     }
   }, [studentAID]);
-  useEffect(() => () => clearInterval(polling.current), []); //Clear chat update interval on unmount
+  useEffect(() => () => {
+    clearInterval(polling.current); 
+    clearInterval(assignPolling.current);
+  }, []); //Clear update intervals on unmount
   return (
     <Container style={{marginTop: '64px', paddingTop: '24px'}}>
       {studentInfo ? (
         <React.Fragment>
-          <Typography variant='h1' style={{textAlign: 'center'}}>{studentInfo.name}</Typography>
-          <Typography variant='h5' style={{textAlign: 'center', marginBottom: '20px', color: '#757575'}}>{studentInfo.email}</Typography>
+          <Box sx={{ mb: 3 }}>
+            <Typography variant='h2'>{studentInfo.name}</Typography>
+            <Typography variant='h5' sx={{ color: 'text.secondary' }} gutterBottom>{studentInfo.email}</Typography>
+            <Typography variant='h6' gutterBottom>
+              {studentClassrooms.current.length} Class{studentClassrooms.current.length != 1 ? 'es' : ''}
+              {Object.keys(chats).length != 0 && ` • ${Object.keys(chats).length} Recorded Conversation${Object.keys(chats).length != 1 ? 's' : ''}`}
+            </Typography>
+            {!devices.find(([_, { info }]) => info.accountId == studentInfo.aid) && (
+              <>
+                <Tooltip title={assigning ? 'Update is in progress' : ( filteredDevices.length == 0 ? 'No devices available to be assigned' : '' )} placement='top' arrow>
+                  <Box sx={{ maxWidth: 'fit-content' }}>
+                    <Button variant="outlined" size="small" disabled={assigning || filteredDevices.length == 0} onClick={() => setDialogOpen(true)}>
+                      {assigning ? 'Updating...' : 'Monitor'}
+                      {assigning && <CircularProgress size={16} style={{margin: '5px', marginLeft: '10px'}} />}
+                    </Button>
+                  </Box>
+                </Tooltip>
+                <SelectDevice dialogOpen={dialogOpen} closeDialog={() => setDialogOpen(false)} devices={filteredDevices} onSelect={assign} />
+              </>
+            )}
+          </Box>
           <Typography variant='h4' style={{marginBottom: '5px'}}>Classes: <span style={{color: '#757575'}}>{studentClassrooms.current.length}</span></Typography>
           <Divider />
           {ClassroomViewer}
           <div style={{display: 'flex', alignItems: 'flex-end'}}>
             <Typography variant='h4' style={{marginBottom: '5px'}}>Chats: <span style={{color: '#757575'}}>{Object.keys(chats).length}</span></Typography>
-            <ChatStatus code={chatStatus.code} sessionsNeeded={chatStatus.sessionsNeeded} updating={updating} aid={studentInfo.aid} update={updateChats} />
+            <ChatStatus code={chatStatus.code} sessionsNeeded={chatStatus.sessionsNeeded} updating={updating} aid={studentInfo.aid} update={updateChats} allDevices={devices} />
           </div>
           <Divider />
           <div style={{padding: '12px', display: 'flex', flexWrap: 'wrap'}}>
@@ -116,7 +159,7 @@ function StudentInfo() {
   );
 }
 
-function ChatStatus({ code, sessionsNeeded, updating, aid, update }) {
+function ChatStatus({ code, sessionsNeeded, updating, aid, update, allDevices }) {
   const [message, setMessage] = useState({text: '', color: '#000'});
   const [dialogOpen, setDialogOpen] = useState(false);
   const [devices, setDevices] = useState([]);
@@ -129,6 +172,9 @@ function ChatStatus({ code, sessionsNeeded, updating, aid, update }) {
       setDialogOpen(true);
     }
   };
+  const refreshDevices = arr => {
+    setDevices(arr.filter(([_, device]) => !device.inactive && (!device.locked || device.info.accountId == aid)));
+  };
 
   useEffect(() => {
     const color = ['#b00020', '#ffab00', '#388e3c'][code];
@@ -140,11 +186,11 @@ function ChatStatus({ code, sessionsNeeded, updating, aid, update }) {
   }, [code, sessionsNeeded]);
 
   useEffect(async () => {
-    const deviceList = await fetch('./api/devices/list').then(res => res.json()).then(data => Object.entries(data));
-    const filtered = deviceList.filter(([_, device]) => !device.inactive && (!device.locked || device.info.accountId == aid));
-    setDevices(filtered);
     setDialogOpen(false);
   }, [aid]);
+  useEffect(() => {
+    refreshDevices(allDevices);
+  }, [allDevices, aid]);
 
   //  We put the disabled button within a div because disabled elements don't fire events, making the tooltip not show up
   return (
@@ -161,23 +207,7 @@ function ChatStatus({ code, sessionsNeeded, updating, aid, update }) {
                 </Button>
               </div>
             </Tooltip>
-            <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
-              <DialogTitle>Select a Worker</DialogTitle>
-              <DialogContent>
-                <List>
-                  {devices.map(([id, device]) => 
-                    <ListItem button key={id} onClick={() => {
-                      update(id);
-                      setDialogOpen(false);
-                    }}>
-                      <ListItemText sx={{ pr: 2 }}>
-                        {device.info.emailOnFile || 'Unknown User'}
-                      </ListItemText>
-                    </ListItem>  
-                  )}
-                </List>
-              </DialogContent>
-            </Dialog>
+            <SelectDevice dialogOpen={dialogOpen} closeDialog={() => setDialogOpen(false)} devices={devices} onSelect={update} />
           </>
         )}
       </Paper>
