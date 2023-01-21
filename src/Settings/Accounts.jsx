@@ -59,7 +59,8 @@ function Accounts({ refreshMode }) {
         inactive: device.inactive,
         orgName: window.atob(device.info.orgName),
         name: userInfo?.name,
-        email: device.info.emailOnFile
+        email: device.info.emailOnFile,
+        verified: device.isVerified
       }];
     }))).then(Object.fromEntries));
     setLoading(false);
@@ -151,6 +152,7 @@ function Accounts({ refreshMode }) {
                 name={account.name}
                 locked={account.locked}
                 inactive={account.inactive}
+                verified={account.verified}
                 assign={assignAccount}
                 remove={removeAccount}
                 changeMode={changeAccountMode}

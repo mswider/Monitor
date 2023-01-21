@@ -53,6 +53,9 @@ class Device {
   #socket;
   #sessions = [];
 
+  static UserIsNotGenuine = '1337'; // A special property which we put in capabilities to identify devices that we're tracking
+                                    // This will cause genuine devices to always appear as seperate from us
+
   constructor(deviceID, { userInfo, version }) {
     this.id = deviceID;
     this.info = userInfo;
@@ -64,7 +67,11 @@ class Device {
         headers: { 'Authorization': deviceID  },
         params: {
           version,
-          liveStateVersion: pusherGGVersion
+          liveStateVersion: pusherGGVersion,
+          capabilities: `1,2,${Device.UserIsNotGenuine}`,  // VariableEntityFlush, AnnotateScreenDot, UserIsNotGenuine (not an actual gg attribute, but one we can use)
+          clientType: 'extension',
+          os: 'default',        // ChromeOS
+          protocolVersion: 1
         }
       }
     };
@@ -113,7 +120,14 @@ class Device {
   }
   #saveMember(member, classInfo) {
     if (loggingIsVerbose) Device.log(`${member.name} connected to ${classInfo.classroomName}`);
-    people[member.aid] = member;
+
+    if (people[member.aid]) {
+      const capabilities = member.capabilities.split(',');
+      if (!capabilities.includes(Device.UserIsNotGenuine)) people[member.aid] = { ...member, __monitorVerified: true };
+    } else {
+      people[member.aid] = member;
+    }
+
     if (!classrooms[classInfo.classroomId].people.includes(member.aid) && member.type == 'student') {
       classrooms[classInfo.classroomId].people.push(member.aid);
     }
@@ -295,7 +309,12 @@ class DeviceManager {
   }
   getAllDevices() {
     let list = {};
-    this.#devices.forEach(({ info, inactive, locked }, id) => (list[id] = { info, inactive, locked }));
+    this.#devices.forEach(({ info, inactive, locked }, id) => (list[id] = {
+      info,
+      inactive,
+      locked,
+      isVerified: !!people[info.accountId]?.__monitorVerified && ( info.subAccountId == people[info.accountId].sid )
+    }));
     return list;
   }
   setLocked(deviceID, isLocked) {
@@ -316,7 +335,12 @@ class DeviceManager {
           sessions[session.id] = { info: session, devices: [ device.id ] };
         }
         const { info } = device;
-        activeDevices[device.id] = { email: info.emailOnFile, name: people[info.accountId]?.name, sid: info.subAccountId };
+        activeDevices[device.id] = {
+          email: info.emailOnFile,
+          name: people[info.accountId]?.name,
+          sid: info.subAccountId,
+          isVerified: !!people[info.accountId]?.__monitorVerified && ( info.subAccountId == people[info.accountId].sid )
+        };
       });
     });
     return { sessions, devices: activeDevices };

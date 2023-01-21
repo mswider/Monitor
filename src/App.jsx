@@ -18,6 +18,9 @@ function App() {
   const [configMode, setConfigMode] = useState();
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
 
+  const themeBase = {
+    verified: blue[500]
+  };
   const theme = useMemo(
     () =>
       createTheme({
@@ -28,7 +31,8 @@ function App() {
             announcement: amber[600],
             teacher: grey[600]
           },
-          codeHighlight: grey[700]
+          codeHighlight: grey[700],
+          ...themeBase
         } : {
           mode: 'light',
           chat: {
@@ -39,7 +43,8 @@ function App() {
           codeHighlight: grey[200],
           background: {
             default: grey[100]
-          }
+          },
+          ...themeBase
         }
       }),
     [prefersDarkMode],

@@ -25,7 +25,7 @@ import LinearProgress from '@mui/material/LinearProgress';
 import { alpha } from "@mui/material";
 import { useTheme } from '@mui/material/styles';
 
-function Account({ deviceID = '-', aid = '-', sid = '-', school = 'Unknown School', email = '-', name = 'Unknown User', locked, inactive, assign, remove, changeMode, refreshAccounts }) {
+function Account({ deviceID = '-', aid = '-', sid = '-', school = 'Unknown School', email = '-', name = 'Unknown User', locked, inactive, verified, assign, remove, changeMode, refreshAccounts }) {
   const [expanded, setExpanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -70,7 +70,11 @@ function Account({ deviceID = '-', aid = '-', sid = '-', school = 'Unknown Schoo
       <Box sx={{ borderRadius: 3, borderTopLeftRadius: 0, borderTopRightRadius: 0, bgcolor: theme => alpha(theme.palette.primary.main, 0.1) }}>
         <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
           <CardContent sx={{ flex: 1, pb: 1 }}>
-            <Typography variant="h5">{name}</Typography>
+            <Typography variant="h5" sx={{ display: 'flex', alignItems: 'center' }}>{name}{verified && (
+              <Tooltip placement="top" title="This device is verified as belonging to an actual student" arrow>
+                <Icon sx={{ ml: 1, color: 'verified' }}>verified</Icon>
+              </Tooltip>
+            )}</Typography>
             <Typography variant="subtitle1" color="text.secondary">{email}</Typography>
             <Box sx={{ display: 'flex' }}>
               <Icon fontSize="small">domain</Icon>

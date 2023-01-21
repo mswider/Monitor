@@ -5,7 +5,7 @@ import Icon from '@mui/material/Icon';
 import Paper from '@mui/material/Paper';
 import Divider from '@mui/material/Divider';
 import List from '@mui/material/List';
-import ListItem from '@mui/material/ListItem';
+import ListItemButton from '@mui/material/ListItemButton';
 import ListItemText from '@mui/material/ListItemText';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListSubheader from '@mui/material/ListSubheader';
@@ -138,12 +138,17 @@ function LiveSessions({ sessions, devices }) {
               </Link>
               {session.devices.map(deviceID => 
                 <Link to={`/session/${devices[deviceID].sid}/${id}`} style={{ color: 'unset', textDecoration: 'unset' }}>
-                  <ListItem button>
+                  <ListItemButton>
                     <ListItemIcon>
                       <Icon sx={{ color: '#64dd17' }}>fiber_manual_record</Icon>
                     </ListItemIcon>
-                    <ListItemText primary={devices[deviceID].name || devices[deviceID].email} />
-                  </ListItem>
+                    <ListItemText primary={
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        {devices[deviceID].name || devices[deviceID].email}
+                        {devices[deviceID].isVerified && <Icon sx={{ ml: 1, color: 'verified' }}>verified</Icon>}
+                      </Box>
+                    } />
+                  </ListItemButton>
                 </Link>
               )}
             </>
