@@ -313,7 +313,8 @@ class DeviceManager {
       info,
       inactive,
       locked,
-      isVerified: !!people[info.accountId]?.__monitorVerified && ( info.subAccountId == people[info.accountId].sid )
+      isVerified: !!people[info.accountId]?.__monitorVerified && ( info.subAccountId == people[info.accountId].sid ),
+      name: people[info.accountId]?.name || 'Unknown User'
     }));
     return list;
   }

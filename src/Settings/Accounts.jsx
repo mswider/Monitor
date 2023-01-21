@@ -50,19 +50,18 @@ function Accounts({ refreshMode }) {
   };
 
   const refreshAccounts = async () => {
-    setAccounts(await fetch('./api/devices/list').then(res => res.json()).then(async data => Promise.all(Object.entries(data).map(async ([id, device]) => {
-      const userInfo = device.info.accountId && await fetch(`./info/people/${device.info.accountId}`).then(res => res.ok && res.json());
+    setAccounts(await fetch('./api/devices/list').then(res => res.json()).then(data => Object.entries(data).map(([id, device]) => {
       return [id, {
         aid: device.info.accountId,
         sid: device.info.subAccountId,
         locked: device.locked,
         inactive: device.inactive,
         orgName: window.atob(device.info.orgName),
-        name: userInfo?.name,
+        name: device.name,
         email: device.info.emailOnFile,
         verified: device.isVerified
       }];
-    }))).then(Object.fromEntries));
+    })).then(Object.fromEntries));
     setLoading(false);
   };
   const assignAccount = async (deviceID, name, email) => {
