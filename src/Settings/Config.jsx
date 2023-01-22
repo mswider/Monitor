@@ -5,9 +5,14 @@ import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import Slider from '@mui/material/Slider';
 import Button from '@mui/material/Button';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import Icon from '@mui/material/Icon';
 import { post } from '../utils';
+import { settings as settingsInfo } from './client';
 
-function Config() {
+function Config({ settings, update }) {
+  const { Appearance: { constants: Appearance } } = settingsInfo;
   const initialValues = useRef({ interval: 15 });
   const [sliderValue, setSliderValue] = useState(initialValues.current.interval);
   const [loading, setLoading] = useState(true);
@@ -54,6 +59,22 @@ function Config() {
             />
           </div>
           <Button variant="contained" disabled={!modified || loading} sx={{ maxWidth: 'fit-content', m: 'auto' }} onClick={updateInterval}>Apply Changes</Button>
+          <div>
+            <Typography variant="h4" gutterBottom>Client</Typography>
+            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Appearance</Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+              <ToggleButtonGroup
+                color="primary"
+                value={settings.Appearance}
+                onChange={(_, e) => update({ key: 'Appearance', value: e })}
+                exclusive
+              >
+                <ToggleButton value={Appearance.LIGHT}><Icon sx={{ mr: 1 }}>light_mode</Icon>Light</ToggleButton>
+                <ToggleButton value={Appearance.SYSTEM}><Icon sx={{ mr: 1 }}>settings_brightness</Icon>System</ToggleButton>
+                <ToggleButton value={Appearance.DARK}><Icon sx={{ mr: 1 }}>dark_mode</Icon>Dark</ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
+          </div>
         </Container>
       </Container>
     </Box>

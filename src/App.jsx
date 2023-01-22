@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useReducer } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { loadSettings, settingsReducer, settings } from './Settings/client';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -16,6 +17,7 @@ import ChatViewer from './ChatViewer.jsx';
 
 function App() {
   const [configMode, setConfigMode] = useState();
+  const [localSettings, updateSettings] = useReducer(settingsReducer, loadSettings());
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
 
   const themeBase = {
@@ -24,7 +26,7 @@ function App() {
   const theme = useMemo(
     () =>
       createTheme({
-        palette: prefersDarkMode ? {
+        palette: ( localSettings.Appearance == settings.Appearance.constants.DARK ? true : localSettings.Appearance == settings.Appearance.constants.SYSTEM && prefersDarkMode ) ? {
           mode: 'dark',
           chat: {
             student: blue[500],
@@ -47,7 +49,7 @@ function App() {
           ...themeBase
         }
       }),
-    [prefersDarkMode],
+    [prefersDarkMode, localSettings.Appearance],
   );
   const refreshMode = async () => {
     const data = await fetch('./api/needsConfig').then(res => res.json());
@@ -61,7 +63,7 @@ function App() {
     ['/student/:studentAID', <Student />],
     ['/search', <UserSearch />],
     ['/dashboard', <Dashboard />, {header: {left: 'menu', right: 'settings'}}],
-    ['/settings', <Settings refreshMode={refreshMode} />, {noAuth: true, header: {left: configMode ? '' : 'back', right: 'save', elevation: 0}}],
+    ['/settings', <Settings refreshMode={refreshMode} settings={localSettings} update={updateSettings} />, {noAuth: true, header: {left: configMode ? '' : 'back', right: 'save', elevation: 0}}],
     ['/*', <Navigate to='/dashboard' replace />, {}]
   ];
 
