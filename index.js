@@ -48,6 +48,7 @@ const pusherAuthEndpoint = 'https://sakura.goguardian.com/api/v1/auth/ext';
 class Device {
   id;
   info;
+  #getIPAddress;
   inactive = false;
   locked = true;
   #socket;
@@ -56,9 +57,10 @@ class Device {
   static UserIsNotGenuine = '1337'; // A special property which we put in capabilities to identify devices that we're tracking
                                     // This will cause genuine devices to always appear as seperate from us
 
-  constructor(deviceID, { userInfo, version }) {
+  constructor(deviceID, { userInfo, version, getIPAddress }) {
     this.id = deviceID;
     this.info = userInfo;
+    this.#getIPAddress = getIPAddress;
 
     const options = {
       cluster: 'goguardian',
@@ -86,7 +88,8 @@ class Device {
   //  ----------  Device API  ----------
   async updateSessions() {
     if (this.inactive) throw new Error('Device is no longer active');
-    const res = await fetch('https://inquisition.goguardian.com/v2/ext/livemode', { headers: { 'Authorization': this.id } });
+    const IP = this.#getIPAddress(this.info.orgRand);
+    const res = await fetch('https://inquisition.goguardian.com/v2/ext/livemode', { headers: { 'Authorization': this.id, ...( IP && { 'X-Forwarded-For': IP } ) } });
     if (!res.ok) throw new Error(`Failed to fetch active sessions: code ${res.status}`);
     const oldSessions = this.#sessions;
     this.#sessions = await res.json().then(e => e.classroomSessions);
@@ -106,6 +109,11 @@ class Device {
       Device.log(`Detected email change for ${this.id}: ${oldEmail || '(no assignment)'} => ${this.info.emailOnFile || '(no assignment)'}`);
     }
     return this.info;
+  }
+  async getDevicePolicy() {
+    const res = await fetch('https://snat.goguardian.com/api/v1/ext/policy', { headers: { 'Authorization': this.id } });
+    if (!res.ok) throw new Error(`Failed to fetch device policy: code ${res.status}`);
+    return await res.json();
   }
   async getChats(session) {
     if (this.inactive) throw new Error('Device is no longer active');
@@ -239,11 +247,11 @@ class Device {
     Device.log(`obtained new device id: ${data.compRandUuid} (member of ${new Buffer.from(data.orgName, 'base64').toString('ascii')})`);
     return data.compRandUuid;
   }
-  static async new(deviceID, version) {
+  static async new(deviceID, version, getIPAddress) {
     const res = await fetch('https://snat.goguardian.com/api/v1/ext/user', { headers: { 'Authorization': deviceID } });
     if (!res.ok) throw new Error(`Failed to fetch user info: code ${res.status}`);
     const userInfo = await res.json();
-    return new Device(deviceID, { userInfo, version });
+    return new Device(deviceID, { userInfo, version, getIPAddress });
   }
 }
 
@@ -253,15 +261,17 @@ class DeviceManager {
 
   #intervalMS;
   #version = '1.0.0.0';
+  #addressCache;
 
   static defaultUpdateInterval = 15000;
 
   constructor() {
     this.#devices = new Map();
+    this.#addressCache = new Map();
     this.#interval = setInterval(this.#updateSessions.bind(this), DeviceManager.defaultUpdateInterval);
     this.#intervalMS = DeviceManager.defaultUpdateInterval;
     setInterval(this.#refreshDevices.bind(this), 15 * 60 * 1000);
-    setInterval(this.updateVersion.bind(this), 30 * 60 * 1000);
+    setInterval(this.#refreshSettings.bind(this), 30 * 60 * 1000);
   }
 
   static log(message) {
@@ -306,6 +316,31 @@ class DeviceManager {
     } catch (error) {
       DeviceManager.log(`Failed to update extension version: ${error}`);
     }
+  }
+  async updateOrgSettings(useCache = false) {
+    let addresses = useCache ? this.#addressCache : new Map();
+    for (const [id, device] of this.#devices.entries()) {
+      const orgID = device.info.orgRand;
+      if (!addresses.has(orgID)) {
+        try {
+          const policy = await device.getDevicePolicy();
+          const ranges = policy.orgSettings.IPRanges;
+          const address = ranges.length == 0 ? null : ranges[0].start;
+          addresses.set(orgID, address);
+          if (loggingIsVerbose) DeviceManager.log(`Determined IP address for ${new Buffer.from(device.info.orgName, 'base64').toString('ascii')}: ${address}`);
+        } catch (error) {
+          if (loggingIsVerbose) DeviceManager.log(`Failed to get device policy for ${id}: ${error}`);
+        }
+      }
+    }
+    this.#addressCache = addresses;
+  }
+  getIPAddress(orgID) {
+    return this.#addressCache.has(orgID) ? this.#addressCache.get(orgID) : null;
+  }
+  #refreshSettings() {
+    this.updateVersion();
+    this.updateOrgSettings();
   }
   getAllDevices() {
     let list = {};
@@ -376,8 +411,9 @@ class DeviceManager {
   }
   async add(deviceID) {
     if (this.#devices.has(deviceID)) throw new Error(`Already added device with id ${deviceID}`);
-    const device = await Device.new(deviceID, this.#version);
+    const device = await Device.new(deviceID, this.#version, this.getIPAddress.bind(this));
     this.#devices.set(deviceID, device);
+    await this.updateOrgSettings(true);
     if (loggingIsVerbose) DeviceManager.log(device.info.emailOnFile ? `Added new device belonging to ${device.info.emailOnFile}` : 'Added new device with no association');
     DeviceManager.log(`Monitoring ${this.#devices.size} device${this.#devices.size != 1 ? 's' : ''}`);
   }
