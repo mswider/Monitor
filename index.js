@@ -695,30 +695,31 @@ api.get('/backup', (req, res) => {
 });
 
 //  ----------  Service Info  ----------
-app.get('/info/classrooms', (req, res) => {
+api.get('/classrooms', (req, res) => {
   res.send(classrooms);
 });
-app.get('/info/classhistory', (req, res) => {
+api.get('/classhistory', (req, res) => {
   res.send(classroomHistory);
 });
-app.get('/info/people/:accountAID', (req, res) => {
+api.get('/people/:accountAID', (req, res) => {
   const person = people[req.params.accountAID];
   person ? res.send(person) : res.sendStatus(404);
 });
-app.get('/info/people', (req, res) => {
+api.get('/people', (req, res) => {
   res.send(people);
 });
 
 //  ----------  Pusher Chat Internals  ----------
-app.get('/info/pusher', (req, res) => {
+const pusherAPI = express.Router();
+pusherAPI.get('/config', (req, res) => {
   res.send({key: pusherKey, version: extensionVersion, ggVersion: pusherGGVersion});
 });
-app.post('/pusher/authproxy', asyncHandler(async (req, res) => { //Needed to circumvent CORS
+pusherAPI.post('/auth', asyncHandler(async (req, res) => { //Needed to circumvent CORS
   const response = await fetch(pusherAuthEndpoint, {method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': req.header('Authorization')}, body: req.body});
   const json = await response.json();
   res.status(response.status).send(json);
 }));
-app.get('/pusher/history/:session', asyncHandler(async (req, res) => { //Also needed to circumvent CORS
+pusherAPI.get('/history/:session', asyncHandler(async (req, res) => { //Also needed to circumvent CORS
   const response = await fetch(`https://snat.goguardian.com/api/v1/ext/chat-messages?sessionId=${req.params.session}`, {headers: {'Authorization': req.header('Auth')}});
   const json = await response.json();
   res.status(response.status).send(json);
@@ -727,5 +728,6 @@ app.get('/pusher/history/:session', asyncHandler(async (req, res) => { //Also ne
 api.use('/devices', deviceApi);
 api.use('/tasks', tasksAPI);
 api.use('/chat', chatAPI);
+api.use('/pusher', pusherAPI);
 app.use('/api', api);
 app.listen(port, formatLog(`App started on port ${port}.`));

@@ -21,7 +21,7 @@ function LiveChat() {
   const [chatKey, setChatKey] = useState(uuidv1()); //Fixes a bug where prop changes aren't reacted to
   const pusherRef = useRef();
   useEffect(async () => {
-    fetch('./info/people').then(res => res.json()).then(setMembers);
+    fetch('./api/people').then(res => res.json()).then(setMembers);
     const devices = await fetch('./api/devices/list').then(res => res.json()).then(Object.entries);
     const searchResult = devices.find(([_, { info }]) => (info.subAccountId == subAccountId));
     if (searchResult) {
@@ -29,8 +29,8 @@ function LiveChat() {
       const session = await fetch('./api/devices/sessions').then(res => res.json()).then(data => data.sessions[sessionId]);
       if (session?.devices.includes(id)) {
         setStatus('ok');
-        const settings = await fetch('./info/pusher').then(res => res.json());
-        pusherRef.current = new Pusher(settings.key, {cluster: 'goguardian', authEndpoint: './pusher/authproxy', auth: {headers: {'Authorization': id}, params: {version: settings.version, liveStateVersion: settings.ggVersion}}});
+        const settings = await fetch('./api/pusher/config').then(res => res.json());
+        pusherRef.current = new Pusher(settings.key, {cluster: 'goguardian', authEndpoint: './api/pusher/auth', auth: {headers: {'Authorization': id}, params: {version: settings.version, liveStateVersion: settings.ggVersion}}});
         const channelNameTemp = `presence-student.${info.accountId}-session.${sessionId}`;
         setPusherInfo({channel: channelNameTemp, studentId: info.accountId, sessionId: session.info.id, classroomId: session.info.classroomId}); //Allows us to send messages outside of this hook
         const channel = pusherRef.current.subscribe(channelNameTemp);
@@ -46,7 +46,7 @@ function LiveChat() {
           setMessages(tempMessages);
           setChatKey(uuidv1());
         });
-        await fetch(`./pusher/history/${sessionId}`, {headers: {'Auth': id}}).then(res => res.json()).then(data => setMessages(data.messages));
+        await fetch(`./api/pusher/history/${sessionId}`, {headers: {'Auth': id}}).then(res => res.json()).then(data => setMessages(data.messages));
       } else {
         setStatus('no_classes');
       }

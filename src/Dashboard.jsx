@@ -24,9 +24,9 @@ function Dashboard() {
   const updateClasses = async () => {
     await fetch('./api/devices/sessions').then(res => res.json()).then(setSessions);
     
-    const historyResponse = await fetch('./info/classHistory').then(res => res.json());
+    const historyResponse = await fetch('./api/classHistory').then(res => res.json());
     setClassHistory(historyResponse);
-    fetch('./info/classrooms').then(res => res.json()).then(data => {
+    fetch('./api/classrooms').then(res => res.json()).then(data => {
       let classroomEntries = [];
       Object.keys(data).map(classroom => {
         const classroomEntry = {
