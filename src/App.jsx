@@ -9,6 +9,7 @@ import Loading from './Loading.jsx';
 import Header from './Header.jsx';
 import Dashboard from './Dashboard.jsx';
 import Session from './Session';
+import SessionNew from './SessionNew';
 import Settings from './Settings';
 import Classroom from './Classroom.jsx';
 import UserSearch from './Search.jsx';
@@ -59,6 +60,7 @@ function App() {
   const routes = [
     ['/chat/:sessionId/:studentAID', <ChatViewer />],
     ['/session/:subAccountId/:sessionId', <Session />],
+    ['/sessionnew/:subAccountId/:sessionId', <SessionNew />],
     ['/classrooms/:classroomId', <Classroom />],
     ['/student/:studentAID', <Student />],
     ['/search', <UserSearch />],
