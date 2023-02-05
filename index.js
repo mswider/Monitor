@@ -513,6 +513,24 @@ deviceApi.post('/locked', checkID, (req, res) => {
     res.status(400).send(errMsg);
   }
 });
+deviceApi.get('/sessions/for/:subAccount', (req, res) => {
+  if (/^\d+$/.test(req.params.subAccount)) {
+    const subAccount = parseInt(req.params.subAccount);
+    const result = Object.entries(manager.getAllDevices()).find(([_, { info }]) => info.subAccountId == subAccount);
+    if (result) {
+      const [id, device] = result;
+      const { sessions: allSessions } = manager.getSessions();
+      const sessions = Object.fromEntries(Object.values(allSessions).filter(({ devices }) => devices.includes(id)).map(e => [e.info.id, e.info]));
+      res.json({
+        sessions, id, name: device.name, aid: device.info.accountId, sid: device.info.subAccountId, isVerified: device.isVerified
+      });
+    } else {
+      res.status(404).send('subAccount not found');
+    }
+  } else {
+    res.status(400).send('subAccount must be an int');
+  }
+});
 deviceApi.get('/sessions', (req, res) => {
   res.json(manager.getSessions());
 });
@@ -712,7 +730,7 @@ api.get('/people', (req, res) => {
 //  ----------  Pusher Chat Internals  ----------
 const pusherAPI = express.Router();
 pusherAPI.get('/config', (req, res) => {
-  res.send({key: pusherKey, version: extensionVersion, ggVersion: pusherGGVersion});
+  res.send({ key: pusherKey, version: extensionVersion, ggVersion: pusherGGVersion, magicNumber: Device.UserIsNotGenuine });
 });
 pusherAPI.post('/auth', asyncHandler(async (req, res) => { //Needed to circumvent CORS
   const response = await fetch(pusherAuthEndpoint, {method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': req.header('Authorization')}, body: req.body});
