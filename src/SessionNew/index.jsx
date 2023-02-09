@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, Link } from 'react-router-dom';
-import { PusherProvider } from "@harelpls/use-pusher";
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
 import Fade from '@mui/material/Fade';
@@ -87,24 +86,24 @@ function Session() {
           <>
             {state == states.NOT_FOUND && <Error title="Account not found" message="Look for it in the dashboard, or double-check your link." />}
             {state == states.OK && (info.sessions.hasOwnProperty(sessionId) ? (
-              <PusherProvider
-                clientKey={pusherConfig.key}
-                cluster="goguardian"
-                authEndpoint="./api/pusher/auth"
-                auth={{
-                  headers: { 'Authorization': info.id },
-                  params: {
-                    version: pusherConfig.version,
-                    liveStateVersion: pusherConfig.ggVersion,
-                    capabilities: `1,2,${pusherConfig.magicNumber}`,
-                    clientType: 'extension',
-                    os: 'default',
-                    protocolVersion: 1
-                  }
-                }}
-              >
-                <Main device={{ id: info.id, name: info.name, aid: info.aid, sid: info.sid, isVerified: info.isVerified }} sessions={info.sessions} session={sessionId} />
-              </PusherProvider>
+              // <PusherProvider
+              //   clientKey={pusherConfig.key}
+              //   cluster="goguardian"
+              //   authEndpoint="./api/pusher/auth"
+              //   auth={{
+              //     headers: { 'Authorization': info.id },
+              //     params: {
+              //       version: pusherConfig.version,
+              //       liveStateVersion: pusherConfig.ggVersion,
+              //       capabilities: `1,2,${pusherConfig.magicNumber}`,
+              //       clientType: 'extension',
+              //       os: 'default',
+              //       protocolVersion: 1
+              //     }
+              //   }}
+              // >
+              <Main device={{ id: info.id, name: info.name, aid: info.aid, sid: info.sid, isVerified: info.isVerified }} sessions={info.sessions} session={sessionId} />
+              // </PusherProvider>
             ) : (
               <Error title="Session isn't active" message="It might've ended, or the link could be wrong." />
             ))}
