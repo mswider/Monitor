@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { PusherProvider, ChannelsProvider } from '../PusherClient';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
 import Fade from '@mui/material/Fade';
@@ -77,8 +78,8 @@ function Session() {
           position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)'
         }}
         unmountOnExit
-        >
-          <CircularProgress />
+      >
+        <CircularProgress />
       </Fade>
       {!loading && ( error ? (
           <Error title="Error" message="Something went wrong." />
@@ -86,24 +87,37 @@ function Session() {
           <>
             {state == states.NOT_FOUND && <Error title="Account not found" message="Look for it in the dashboard, or double-check your link." />}
             {state == states.OK && (info.sessions.hasOwnProperty(sessionId) ? (
-              // <PusherProvider
-              //   clientKey={pusherConfig.key}
-              //   cluster="goguardian"
-              //   authEndpoint="./api/pusher/auth"
-              //   auth={{
-              //     headers: { 'Authorization': info.id },
-              //     params: {
-              //       version: pusherConfig.version,
-              //       liveStateVersion: pusherConfig.ggVersion,
-              //       capabilities: `1,2,${pusherConfig.magicNumber}`,
-              //       clientType: 'extension',
-              //       os: 'default',
-              //       protocolVersion: 1
-              //     }
-              //   }}
-              // >
-              <Main device={{ id: info.id, name: info.name, aid: info.aid, sid: info.sid, isVerified: info.isVerified }} sessions={info.sessions} session={sessionId} />
-              // </PusherProvider>
+              <PusherProvider
+                clientKey={pusherConfig.key}
+                cluster="goguardian"
+                authEndpoint="./api/pusher/auth"
+                auth={{
+                  headers: { 'Authorization': info.id },
+                  params: {
+                    version: pusherConfig.version,
+                    liveStateVersion: pusherConfig.ggVersion,
+                    capabilities: `1,2,${pusherConfig.magicNumber}`,
+                    clientType: 'extension',
+                    os: 'default',
+                    protocolVersion: 1
+                  }
+                }}
+              >
+                <ChannelsProvider>
+                  <Main
+                    device={{
+                      id: info.id,
+                      name: info.name,
+                      aid: info.aid,
+                      sid: info.sid,
+                      isVerified: info.isVerified
+                    }}
+                    sessions={info.sessions}
+                    session={sessionId}
+                    error={() => setError(true)}
+                  />
+                </ChannelsProvider>
+              </PusherProvider>
             ) : (
               <Error title="Session isn't active" message="It might've ended, or the link could be wrong." />
             ))}
