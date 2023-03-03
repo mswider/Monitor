@@ -31,6 +31,8 @@ function Main({ device, sessions, session, error }) {
       error();
     });
     chatChannel.bind('pusher:subscription_succeeded', () => setSubscribed(e => ({ ...e, chat: true })));
+
+    controlChannel.bind('client-chat-message', e => console.log('client-chat-message:', e));
   }, [chatChannel]);
   useEffect(() => {
     if (!controlChannel) return;
@@ -40,6 +42,8 @@ function Main({ device, sessions, session, error }) {
       error();
     });
     controlChannel.bind('pusher:subscription_succeeded', () => setSubscribed(e => ({ ...e, control: true })));
+
+    controlChannel.bind('client-state-set', e => console.log('client-state-set:', e));
   }, [controlChannel]);
 
   useEffect(() => {
