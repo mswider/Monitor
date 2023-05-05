@@ -375,6 +375,7 @@ class DeviceManager {
           email: info.emailOnFile,
           name: people[info.accountId]?.name,
           sid: info.subAccountId,
+          aid: info.accountId,
           isVerified: !!people[info.accountId]?.__monitorVerified && ( info.subAccountId == people[info.accountId].sid )
         };
       });
@@ -715,6 +716,20 @@ api.get('/backup', (req, res) => {
 //  ----------  Service Info  ----------
 api.get('/classrooms', (req, res) => {
   res.send(classrooms);
+});
+api.get('/classrooms/:classroom', (req, res) => {
+  if (classrooms.hasOwnProperty(req.params.classroom)) {
+    const classroom = classrooms[req.params.classroom];
+    const students = Object.fromEntries(classroom.people.map(person => ([person, people[person]])));
+    const teachers = Object.fromEntries(Object.keys(classroom.admins).map(aid => ([aid, people[aid]])).filter(([_, e]) => e));
+    const data = {
+      ...classroom,
+      people: req.query.withAdmins ? { ...students, ...teachers } : students
+    };
+    res.json(data);
+  } else {
+    res.sendStatus(404);
+  }
 });
 api.get('/classhistory', (req, res) => {
   res.send(classroomHistory);
