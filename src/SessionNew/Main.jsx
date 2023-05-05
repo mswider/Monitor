@@ -1,21 +1,66 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useChannel, usePresenceChannel } from '../PusherClient';
-import { Link } from 'react-router-dom';
-import Box from '@mui/material/Box';
-import Paper from '@mui/material/Paper';
-import Typography from '@mui/material/Typography';
-import Icon from '@mui/material/Icon';
-import Divider from '@mui/material/Divider';
+import Grid from '@mui/material/Grid';
+import ActivityList, { USER } from './ActivityList';
 
-function Main({ device, sessions, session, error }) {
+function Main({ device, sessions, session, error, magicNumber }) {
+  const [classroomMembers, setClassroomMembers] = useState({});
+  const [monitored, setMonitored] = useState([]);
   const [subscribed, setSubscribed] = useState({ presence: false, chat: false, control: false });
   const [controlName, setControlName] = useState();
-  const { channel: presenceChannel, members: presenceMembers, count: presenceCount } = usePresenceChannel(`presence-session.${session}`);
-  const { channel: chatChannel,     members: chatMembers,     count: chatCount } = usePresenceChannel(`presence-student.${device.aid}-session.${session}`);
+  const { channel: presenceChannel, members: presenceMembers } = usePresenceChannel(`presence-session.${session}`);
+  const { channel: chatChannel } = usePresenceChannel(`presence-student.${device.aid}-session.${session}`);
   const controlChannel = useChannel(controlName);
 
+  const participants = useMemo(() => {
+    const members = Object.values(presenceMembers).filter(e => !e.capabilities?.split(',').includes(magicNumber));
+    const membersObj = Object.fromEntries(members.map(e => ([e.aid, e])));
+    const allPeople = { ...classroomMembers, ...membersObj };
+    const onlineList = Object.keys(membersObj);
+    const monitoredIds = monitored.map(device => device.aid);
+    const verifiedSids = monitored.filter(device => device.isVerified).map(device => device.sid);
+
+    const online = [];
+    const offline = [];
+    for (const { name, type, aid, sid } of Object.values(allPeople)) {
+      const newPerson = {
+        aid: aid,
+        name: name,
+        type: type === 'student' ? ( monitoredIds.includes(aid) ? USER.monitored : USER.student ) : USER.admin,
+        selected: device.aid === aid,
+        isVerified: verifiedSids.includes(sid)
+      };
+      if (onlineList.includes(aid.toString())) {
+        online.push(newPerson);
+      } else {
+        offline.push(newPerson);
+      }
+    }
+
+    return { online, offline };
+  }, [classroomMembers, presenceMembers, monitored]);
+  
+  useEffect(() => {
+    const getPeople = async () => {
+      const { classroomId } = sessions[session];
+      const req = await fetch(`./api/classrooms/${classroomId}?withAdmins=true`);
+      if (!req.ok) return;
+      const { people } = await req.json();
+      setClassroomMembers(people);
+    };
+    const getMonitored = async () => {
+      const req = await fetch(`./api/devices/sessions`);
+      if (!req.ok) return;
+      const devices = await req.json().then(e => Object.values(e.devices));
+      setMonitored(devices);
+    };
+
+    Promise.all([ getPeople(), getMonitored() ]);
+  }, [session]);
   useEffect(() => {
     if (!presenceChannel) return;
+    console.log('presence:', presenceChannel);
+    window.monitorPresenceChannel = presenceChannel;
 
     presenceChannel.bind('pusher:subscription_error', err => {
       console.warn(`Pusher ${err.type} in presence:\n${err.error}`);
@@ -25,6 +70,8 @@ function Main({ device, sessions, session, error }) {
   }, [presenceChannel]);
   useEffect(() => {
     if (!chatChannel) return;
+    console.log('chat:', chatChannel);
+    window.monitorChatChannel = chatChannel;
 
     chatChannel.bind('pusher:subscription_error', err => {
       console.warn(`Pusher ${err.type} in chat:\n${err.error}`);
@@ -32,10 +79,12 @@ function Main({ device, sessions, session, error }) {
     });
     chatChannel.bind('pusher:subscription_succeeded', () => setSubscribed(e => ({ ...e, chat: true })));
 
-    controlChannel.bind('client-chat-message', e => console.log('client-chat-message:', e));
+    chatChannel.bind('client-chat-message', e => console.log('client-chat-message:', e));
   }, [chatChannel]);
   useEffect(() => {
     if (!controlChannel) return;
+    console.log('control:', controlChannel);
+    window.monitorControlChannel = controlChannel;
 
     controlChannel.bind('pusher:subscription_error', err => {
       console.warn(`Pusher ${err.type} in control:\n${err.error}`);
@@ -55,31 +104,11 @@ function Main({ device, sessions, session, error }) {
   }, []);
 
   return (
-    <Box sx={{ flex: '1', p: 8 }}>
-      <Paper elevation="3" sx={{ height: '100%' }}>
-        <Box sx={{ p: 2, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-          <Typography variant="h5">{device.name}</Typography>
-          {device.isVerified && <Icon sx={{ ml: 1, color: 'verified' }}>verified</Icon>}
-        </Box>
-        <Divider />
-        {subscribed.presence && <p>presence subscription success</p>}
-        {subscribed.chat && <p>chat subscription success</p>}
-        {subscribed.control && <p>control subscription success</p>}
-        {subscribed.presence && (
-          <Box sx={{ m: 4 }}>
-            <Typography variant="h4">Presence members: ({presenceCount})</Typography>
-            {Object.entries(presenceMembers).map(([id, member]) => (
-              <Typography variant="h6" key={id + '-presence'}><b>{id}: </b>{member.name}</Typography>
-            ))}
-            <br />
-            <Typography variant="h4">Chat members: ({chatCount})</Typography>
-            {Object.entries(chatMembers).map(([id, member]) => (
-              <Typography variant="h6" key={id + '-chat'}><b>{id}: </b>{member.name}</Typography>
-            ))}
-          </Box>
-        )}
-      </Paper>
-    </Box>
+    <Grid container>
+      <Grid item xs={12} sm={6} md={4} lg={2}>
+        <ActivityList online={participants.online} offline={participants.offline} />
+      </Grid>
+    </Grid>
   );
 }
 

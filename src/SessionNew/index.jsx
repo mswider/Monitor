@@ -112,6 +112,7 @@ function Session() {
                       sid: info.sid,
                       isVerified: info.isVerified
                     }}
+                    magicNumber={pusherConfig.magicNumber}
                     sessions={info.sessions}
                     session={sessionId}
                     error={() => setError(true)}
