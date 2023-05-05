@@ -130,7 +130,7 @@ class Device {
     if (loggingIsVerbose) Device.log(`${member.name} connected to ${classInfo.classroomName}`);
 
     if (people[member.aid]) {
-      const capabilities = member.capabilities.split(',');
+      const capabilities = member.capabilities?.split(',') || [];
       if (!capabilities.includes(Device.UserIsNotGenuine)) people[member.aid] = { ...member, __monitorVerified: true };
     } else {
       people[member.aid] = member;
