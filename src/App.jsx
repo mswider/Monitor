@@ -8,7 +8,7 @@ import { blue, amber, grey } from '@mui/material/colors';
 import Loading from './Loading.jsx';
 import Header from './Header.jsx';
 import Dashboard from './Dashboard.jsx';
-import Session from './SessionNew';
+import Session from './Session';
 import Settings from './Settings';
 import Classroom from './Classroom.jsx';
 import UserSearch from './Search.jsx';
