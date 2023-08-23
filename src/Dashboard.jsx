@@ -22,7 +22,7 @@ function Dashboard() {
   const [classrooms, setClassrooms] = useState([]);
 
   const updateClasses = async () => {
-    await fetch('./api/devices/sessions').then(res => res.json()).then(setSessions);
+    fetch('./api/devices/sessions').then(res => res.json()).then(setSessions);
     
     const historyResponse = await fetch('./api/classHistory').then(res => res.json());
     setClassHistory(historyResponse);
