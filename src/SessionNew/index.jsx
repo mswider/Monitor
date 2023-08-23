@@ -70,7 +70,6 @@ function Session() {
   }, [subAccountId]);
   return (
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <Box sx={ theme => theme.mixins.toolbar } />
       <Fade
         in={loading}
         style={{

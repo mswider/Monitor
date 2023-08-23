@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Icon from '@mui/material/Icon';
 import List from '@mui/material/List';
@@ -26,58 +27,89 @@ function PersonIcon({ type }) {
   }
 }
 
-function User({ person }) {
-  return (
-    <ListItemButton selected={person.selected} disabled={person.type !== USER.monitored}>
+function User({ person, link }) {
+  const disabled = person.type !== USER.monitored;
+  const element = (
+    <ListItemButton
+      selected={person.selected}
+      disabled={disabled}
+      sx={{ borderRadius: 3 }}
+    >
       <ListItemIcon>
         <PersonIcon type={person.type} />
       </ListItemIcon>
-      <ListItemText primary={
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          {person.name}
-          {person.isVerified && 
-            <ListItemIcon>
-              <Icon sx={{ ml: 1, color: 'verified' }}>verified</Icon>
+      <ListItemText
+        primary={
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}
+          >
+            {person.name}
+            <ListItemIcon sx={{ gap: 1 }}>
+              {person.isVerified && <Icon>monitor</Icon>}
             </ListItemIcon>
-          }
-        </Box>
-      } />
+          </Box>
+        }
+      />
     </ListItemButton>
+  );
+
+  return disabled || person.selected ? (
+    element
+  ) : (
+    <Link to={link} style={{ color: 'unset', textDecoration: 'unset' }}>
+      {element}
+    </Link>
   );
 }
 
-function UserList({ people, title }) {
+function UserList({ people, title, session }) {
   const [expanded, setExpanded] = useState(true);
 
   return (
-    <>
-      <ListSubheader>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <React.Fragment>
+      <ListSubheader sx={{ borderRadius: 2 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}
+        >
           {title} — {people.length}
           <IconButton
             size="small"
             onClick={() => setExpanded(!expanded)}
             sx={{
               transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
-              transition: theme => `${theme.transitions.duration.shortest}ms`
+              transition: (theme) => `${theme.transitions.duration.shortest}ms`
             }}
           >
             <Icon>expand_more</Icon>
           </IconButton>
         </Box>
       </ListSubheader>
-      <Collapse in={expanded}>
-        {people.map(person => <User key={person.aid + '-presence'} person={person} /> )}
+      <Collapse in={expanded} sx={{ mt: 1, mb: 1 }}>
+        {people.map((person) => (
+          <User
+            key={person.aid + '-presence'}
+            person={person}
+            link={`/session/${person.sid}/${session}`}
+          />
+        ))}
       </Collapse>
-    </>
+    </React.Fragment>
   );
 }
 
-function ActivityList({ online, offline }) {
+function ActivityList({ online, offline, session }) {
   return (
-    <List component='nav'>
-      <UserList people={online} title="Online" />
-      <UserList people={offline} title="Offline" />
+    <List component="nav" sx={{ p: 1, pt: 0 }}>
+      <UserList people={online} title="Online" session={session} />
+      <UserList people={offline} title="Offline" session={session} />
     </List>
   );
 }
