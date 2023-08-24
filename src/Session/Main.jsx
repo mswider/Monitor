@@ -111,8 +111,6 @@ function Main({ device, sessions, session, error, magicNumber }) {
   useEffect(() => {
     if (device.isVerified) {
       setControlName(`private-subaccount.${device.sid}`);
-    } else {
-      console.log('Skipping connection to control channel: device is not verified');
     }
   }, []);
 
