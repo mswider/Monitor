@@ -130,7 +130,7 @@ class Device {
     if (loggingIsVerbose) Device.log(`${member.name} connected to ${classInfo.classroomName}`);
 
     if (people[member.aid]) {
-      const capabilities = member.capabilities.split(',');
+      const capabilities = member.capabilities?.split(',') || [];
       if (!capabilities.includes(Device.UserIsNotGenuine)) people[member.aid] = { ...member, __monitorVerified: true };
     } else {
       people[member.aid] = member;
@@ -375,6 +375,7 @@ class DeviceManager {
           email: info.emailOnFile,
           name: people[info.accountId]?.name,
           sid: info.subAccountId,
+          aid: info.accountId,
           isVerified: !!people[info.accountId]?.__monitorVerified && ( info.subAccountId == people[info.accountId].sid )
         };
       });
@@ -511,6 +512,24 @@ deviceApi.post('/locked', checkID, (req, res) => {
     res.sendStatus(200);
   } else {
     res.status(400).send(errMsg);
+  }
+});
+deviceApi.get('/sessions/for/:subAccount', (req, res) => {
+  if (/^\d+$/.test(req.params.subAccount)) {
+    const subAccount = parseInt(req.params.subAccount);
+    const result = Object.entries(manager.getAllDevices()).find(([_, { info }]) => info.subAccountId == subAccount);
+    if (result) {
+      const [id, device] = result;
+      const { sessions: allSessions } = manager.getSessions();
+      const sessions = Object.fromEntries(Object.values(allSessions).filter(({ devices }) => devices.includes(id)).map(e => [e.info.id, e.info]));
+      res.json({
+        sessions, id, name: device.name, aid: device.info.accountId, sid: device.info.subAccountId, isVerified: device.isVerified
+      });
+    } else {
+      res.status(404).send('subAccount not found');
+    }
+  } else {
+    res.status(400).send('subAccount must be an int');
   }
 });
 deviceApi.get('/sessions', (req, res) => {
@@ -695,30 +714,45 @@ api.get('/backup', (req, res) => {
 });
 
 //  ----------  Service Info  ----------
-app.get('/info/classrooms', (req, res) => {
+api.get('/classrooms', (req, res) => {
   res.send(classrooms);
 });
-app.get('/info/classhistory', (req, res) => {
+api.get('/classrooms/:classroom', (req, res) => {
+  if (classrooms.hasOwnProperty(req.params.classroom)) {
+    const classroom = classrooms[req.params.classroom];
+    const students = Object.fromEntries(classroom.people.map(person => ([person, people[person]])));
+    const teachers = Object.fromEntries(Object.keys(classroom.admins).map(aid => ([aid, people[aid]])).filter(([_, e]) => e));
+    const data = {
+      ...classroom,
+      people: req.query.withAdmins ? { ...students, ...teachers } : students
+    };
+    res.json(data);
+  } else {
+    res.sendStatus(404);
+  }
+});
+api.get('/classhistory', (req, res) => {
   res.send(classroomHistory);
 });
-app.get('/info/people/:accountAID', (req, res) => {
+api.get('/people/:accountAID', (req, res) => {
   const person = people[req.params.accountAID];
   person ? res.send(person) : res.sendStatus(404);
 });
-app.get('/info/people', (req, res) => {
+api.get('/people', (req, res) => {
   res.send(people);
 });
 
 //  ----------  Pusher Chat Internals  ----------
-app.get('/info/pusher', (req, res) => {
-  res.send({key: pusherKey, version: extensionVersion, ggVersion: pusherGGVersion});
+const pusherAPI = express.Router();
+pusherAPI.get('/config', (req, res) => {
+  res.send({ key: pusherKey, version: extensionVersion, ggVersion: pusherGGVersion, magicNumber: Device.UserIsNotGenuine });
 });
-app.post('/pusher/authproxy', asyncHandler(async (req, res) => { //Needed to circumvent CORS
+pusherAPI.post('/auth', asyncHandler(async (req, res) => { //Needed to circumvent CORS
   const response = await fetch(pusherAuthEndpoint, {method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': req.header('Authorization')}, body: req.body});
   const json = await response.json();
   res.status(response.status).send(json);
 }));
-app.get('/pusher/history/:session', asyncHandler(async (req, res) => { //Also needed to circumvent CORS
+pusherAPI.get('/history/:session', asyncHandler(async (req, res) => { //Also needed to circumvent CORS
   const response = await fetch(`https://snat.goguardian.com/api/v1/ext/chat-messages?sessionId=${req.params.session}`, {headers: {'Authorization': req.header('Auth')}});
   const json = await response.json();
   res.status(response.status).send(json);
@@ -727,5 +761,6 @@ app.get('/pusher/history/:session', asyncHandler(async (req, res) => { //Also ne
 api.use('/devices', deviceApi);
 api.use('/tasks', tasksAPI);
 api.use('/chat', chatAPI);
+api.use('/pusher', pusherAPI);
 app.use('/api', api);
 app.listen(port, formatLog(`App started on port ${port}.`));

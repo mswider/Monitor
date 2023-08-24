@@ -73,8 +73,8 @@ function StudentInfo() {
 
   useEffect(async () => {
     if (isInit.current) {
-      allClasses.current = await fetch('./info/classrooms').then(res => res.json());
-      classHistory.current = await fetch('./info/classHistory').then(res => res.json());
+      allClasses.current = await fetch('./api/classrooms').then(res => res.json());
+      classHistory.current = await fetch('./api/classHistory').then(res => res.json());
       isInit.current = false;
     }
     setStudentInfo(null);
@@ -98,7 +98,7 @@ function StudentInfo() {
         }));
         await loadChatData(accountAID);
         await fetch('./api/devices/list').then(res => res.json()).then(Object.entries).then(setDevices);
-        await fetch(`./info/people/${accountAID}`).then(res => res.json()).then(setStudentInfo);
+        await fetch(`./api/people/${accountAID}`).then(res => res.json()).then(setStudentInfo);
       }
     }
   }, [studentAID]);

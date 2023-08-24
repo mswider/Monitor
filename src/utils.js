@@ -9,5 +9,8 @@ function post(url, obj, headers = {}) {
   };
   return fetch(url, options);
 }
+function initials(name) {
+  return name.split(' ').reduce((a, b) => a + b[0].toUpperCase(), '');
+}
 
-export { copy, post };
+export { copy, post, initials };

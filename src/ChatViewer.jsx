@@ -12,8 +12,8 @@ function ChatViewer() {
   const [classroom, setClassroom] = useState('');
 
   useEffect(async () => {
-    await fetch('./info/classHistory').then(res => res.json()).then(data => setClassroom(data.filter(e => e.id == sessionId)[0].name));
-    await fetch('./info/people').then(res => res.json()).then(setMembers);
+    await fetch('./api/classHistory').then(res => res.json()).then(data => setClassroom(data.filter(e => e.id == sessionId)[0].name));
+    await fetch('./api/people').then(res => res.json()).then(setMembers);
     fetch(`./api/chat/messages/${studentAID}`).then(async res => {
       if (res.ok) {
         const data = await res.json();

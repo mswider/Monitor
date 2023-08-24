@@ -13,11 +13,12 @@ function Classroom() {
   const [state, setState] = useState({ ready: false });
 
   useEffect(async () => {
-    const classInfo = await fetch('./info/classrooms').then(res => res.json());
-    if (classInfo[classroomId]) {
-      let _state = { classroomInfo: classInfo[classroomId], ready: true };
-      _state.people = await fetch('./info/people').then(res => res.json());
-      _state.history = await fetch('./info/classhistory').then(res => res.json()).then(data => data.filter(e => e.classroomId == classroomId));
+    const classRequest = await fetch(`./api/classrooms/${classroomId}`);
+    if (classRequest.ok) {
+      const { people, ...classInfo } = await classRequest.json();
+      let _state = { classroomInfo: classInfo, ready: true };
+      _state.people = Object.entries(people);
+      _state.history = await fetch('./api/classhistory').then(res => res.json()).then(data => data.filter(e => e.classroomId == classroomId));
       _state.chatStatus = await fetch(`./api/chat/classroomStatus/${classroomId}`).then(res => res.json());
       setState(_state);
     }
@@ -49,14 +50,14 @@ function Classroom() {
             </Paper>
           )}
         </div>
-        <Typography variant='h5' style={{marginBottom: '5px'}}>{`Students (${state.classroomInfo.people.length})`}</Typography>
+        <Typography variant='h5' style={{marginBottom: '5px'}}>{`Students (${state.people.length})`}</Typography>
         <Divider />
         <div style={{padding: '12px', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-evenly'}}>
-          {state.classroomInfo.people.map(e =>
+          {state.people.map(([e, student]) =>
             <Paper key={e} variant='outlined' style={{display: 'flex', padding: '8px', margin: '4px'}}>
               <Link to={`/student/${e}`} style={{color: 'unset', textDecoration: 'none'}}>
-                <Tooltip title={state.people[e].email}>
-                  <Typography variant='h5' style={{marginRight: '5px'}}>{state.people[e].name}</Typography>
+                <Tooltip title={student.email}>
+                  <Typography variant='h5' style={{marginRight: '5px'}}>{student.name}</Typography>
                 </Tooltip>
               </Link>
               <Tooltip title={getChatStatusMsg(state.chatStatus[e])} placement='right' disableInteractive>

@@ -58,7 +58,7 @@ function App() {
 
   const routes = [
     ['/chat/:sessionId/:studentAID', <ChatViewer />],
-    ['/session/:subAccountId/:sessionId', <Session />],
+    ['/session/:subAccountId/:sessionId', <Session />, { header: { left: 'back', right: 'settings', elevation: 0 } }],
     ['/classrooms/:classroomId', <Classroom />],
     ['/student/:studentAID', <Student />],
     ['/search', <UserSearch />],
