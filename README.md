@@ -4,6 +4,9 @@
 
 ![dashboard](https://user-images.githubusercontent.com/37093293/204198473-dd188c48-c5d8-4d5a-a2b2-760679065b6d.png#gh-light-mode-only)
 ![dashboard](https://user-images.githubusercontent.com/37093293/204198759-bcd6765b-d282-4155-8e07-6b0e1189f6d0.png#gh-dark-mode-only)
+![chat](https://github.com/mswider/Monitor/assets/37093293/50e34415-3bce-4fe5-88d3-a1dbe49c1241#gh-light-mode-only)
+![chat](https://github.com/mswider/Monitor/assets/37093293/7a3367e5-3789-439f-96aa-5b4fc39fbfd3#gh-dark-mode-only)
+
 
 
 ## Features
