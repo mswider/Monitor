@@ -1,0 +1,6 @@
+{
+	"port": 3000,
+	"backup": "/path/to/backup.json",
+	"verbose": false,
+	"notify": "true"
+}

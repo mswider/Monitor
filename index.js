@@ -13,6 +13,7 @@ app.use(express.text({type: 'application/x-www-form-urlencoded'}));
 app.use(express.static('build'));
 const api = express.Router();
 const argv = yargs(hideBin(process.argv))
+  .config()
   .option('port', {
     alias: 'p',
     default: 3000,
