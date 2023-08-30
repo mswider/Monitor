@@ -2,7 +2,7 @@
 	"port": 3000,
 	"backup": "/path/to/backup.json",
 	"verbose": false,
-	"notify": "true",
+	"notify": true,
 	"devices": [
 		"0be4e633-8d66-498e-9e03-dfc89aa3af0a",
 		"73318673-076b-42e1-b989-c5f0172e2150",
