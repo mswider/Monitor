@@ -48,6 +48,7 @@ Here's a list of parameters available:
 -b, --backup   Sets file used to restore from backup
 -v, --verbose  Sets the logging level to verbose    [boolean] [default: false]
 -n, --notify   Enables desktop notifications        [boolean] [default: false]
+-d, --devices  Tracks a list of device IDs                             [array]
 ```
 
 ### Settings

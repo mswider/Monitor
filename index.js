@@ -31,6 +31,10 @@ const argv = yargs(hideBin(process.argv))
     default: false,
     boolean: true,
     describe: 'Enables desktop notifications'
+  }).option('devices', {
+    alias: 'd',
+    array: true,
+    describe: 'Tracks a list of device IDs'
   }).argv;
 
 let port = argv.port;
@@ -279,6 +283,27 @@ class DeviceManager {
     formatLog(`[MANAGER]: ${message}`);
   }
 
+  async init({ devices = [] }) {
+    await this.updateVersion();
+
+    Promise.allSettled(devices.map(device => {
+      if (device) needsConfig = false;
+      return new Promise((resolve, reject) => {
+        this.add(device, true).then(() => resolve()).catch(error => reject({ device, error }));
+      });
+    })).then(e => {
+      let devicesAdded = 0;
+      e.map((result) => {
+        if (result.status === 'rejected') {
+          const { device, error } = result.reason;
+          DeviceManager.log(`Couldn't add device "${device}": ${error}`);
+        } else {
+          devicesAdded++;
+        }
+      });
+      if (devices.length != 0) DeviceManager.log(`Added ${devicesAdded} device${devicesAdded != 1 ? 's' : ''} from config`);
+    });
+  }
   #refreshDevices() {
     this.#devices.forEach(device => {
       device.updateUserInfo().catch(error => loggingIsVerbose && DeviceManager.log(`Failed to refresh device: ${error}`));
@@ -411,13 +436,13 @@ class DeviceManager {
       iterations++;
     }
   }
-  async add(deviceID) {
+  async add(deviceID, isInit = false) {
     if (this.#devices.has(deviceID)) throw new Error(`Already added device with id ${deviceID}`);
     const device = await Device.new(deviceID, this.#version, this.getIPAddress.bind(this));
     this.#devices.set(deviceID, device);
     await this.updateOrgSettings(true);
     if (loggingIsVerbose) DeviceManager.log(device.info.emailOnFile ? `Added new device belonging to ${device.info.emailOnFile}` : 'Added new device with no association');
-    DeviceManager.log(`Monitoring ${this.#devices.size} device${this.#devices.size != 1 ? 's' : ''}`);
+    if (!isInit) DeviceManager.log(`Monitoring ${this.#devices.size} device${this.#devices.size != 1 ? 's' : ''}`);
   }
   async register(orgID) {
     const deviceID = await Device.register(orgID);
@@ -455,7 +480,7 @@ class DeviceManager {
 }
 
 const manager = new DeviceManager();
-manager.updateVersion();
+manager.init({ devices: argv.devices });
 
 function formatLog (text) {
   console.log(`${new Date().toLocaleString()} - ${text}`);
