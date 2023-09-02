@@ -54,6 +54,7 @@ class Device {
   id;
   info;
   #getIPAddress;
+  #onSessionEnd;
   inactive = false;
   locked = true;
   #socket;
@@ -62,10 +63,11 @@ class Device {
   static UserIsNotGenuine = '1337'; // A special property which we put in capabilities to identify devices that we're tracking
                                     // This will cause genuine devices to always appear as seperate from us
 
-  constructor(deviceID, { userInfo, version, getIPAddress }) {
+  constructor(deviceID, { userInfo, version, getIPAddress, onSessionEnd }) {
     this.id = deviceID;
     this.info = userInfo;
     this.#getIPAddress = getIPAddress;
+    this.#onSessionEnd = onSessionEnd;
 
     const options = {
       cluster: 'goguardian',
@@ -196,6 +198,7 @@ class Device {
     const sessionIndex = classroomHistory.findIndex(e => e.id == session.id);
     classroomHistory[sessionIndex].endMs = Date.now();
     this.#socket.unsubscribe(`presence-session.${session.id}`);
+    this.#onSessionEnd(session);
   };
 
   //  ----------  Device Management  ----------
@@ -252,11 +255,11 @@ class Device {
     Device.log(`obtained new device id: ${data.compRandUuid} (member of ${new Buffer.from(data.orgName, 'base64').toString('ascii')})`);
     return data.compRandUuid;
   }
-  static async new(deviceID, version, getIPAddress) {
+  static async new(deviceID, version, getIPAddress, onSessionEnd) {
     const res = await fetch('https://snat.goguardian.com/api/v1/ext/user', { headers: { 'Authorization': deviceID } });
     if (!res.ok) throw new Error(`Failed to fetch user info: code ${res.status}`);
     const userInfo = await res.json();
-    return new Device(deviceID, { userInfo, version, getIPAddress });
+    return new Device(deviceID, { userInfo, version, getIPAddress, onSessionEnd });
   }
 }
 
@@ -438,7 +441,22 @@ class DeviceManager {
   }
   async add(deviceID, isInit = false) {
     if (this.#devices.has(deviceID)) throw new Error(`Already added device with id ${deviceID}`);
-    const device = await Device.new(deviceID, this.#version, this.getIPAddress.bind(this));
+    const device = await Device.new(
+      deviceID,
+      this.#version,
+      this.getIPAddress.bind(this),
+      async (session) => {
+        try {
+          await this.getChatsForSessions(deviceID, [session.id]);
+          if (loggingIsVerbose) DeviceManager.log('onSessionEnd(): success');
+        } catch (error) {
+          if (loggingIsVerbose) {
+            DeviceManager.log('onSessionEnd failed:');
+            console.log(error);
+          }
+        }
+      }
+    );
     this.#devices.set(deviceID, device);
     await this.updateOrgSettings(true);
     if (loggingIsVerbose) DeviceManager.log(device.info.emailOnFile ? `Added new device belonging to ${device.info.emailOnFile}` : 'Added new device with no association');
